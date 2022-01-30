@@ -35,11 +35,32 @@
 
 typedef struct
 {
-    nya_size_t curr_tid;
-    nya_tcb_t tcb[NYA_CFG_MAX_TASKS];
+    nya_tcb_group_t tcb_groups[NYA_CFG_GROUPS];
+    nya_u8_t group_ready[NYA_CFG_GROUPS];
 } evsched_ctx_t;
 
-static evsched_ctx_t ctx;
+static evsched_ctx_t ctx =
+{
+    .tcb_groups =
+    {
+#define NYA_GROUP(_priority, _mode)             \
+    [_priority] =                               \
+    {                                           \
+        .mode   = _mode,                        \
+        .tcb    =                               \
+        {                                       \
+            NYA_GROUP_##_priority##_DEFINITIONS \
+        }                                       \
+    },
+#define NYA_TASK(_priority) \
+    [_priority] =           \
+    {                       \
+    },
+    NYA_GROUP_DEFINITIONS
+#undef NYA_GROUP
+#undef NYA_TASK
+    }
+};
 
 /* ------------------------------------------------------------------------------ */
 /* Private Prototypes */
@@ -54,9 +75,9 @@ static void _task_switch(void);
 static void _task_switch(void)
 {
     NYA_DECLARE_CRITICAL();
-    NYA_ENTER_CRITICAL(); 
-    
-    //TODO: task switching
-    
+    NYA_ENTER_CRITICAL();
+
+    /*TODO: task switching */
+
     NYA_EXIT_CRITICAL();
 }

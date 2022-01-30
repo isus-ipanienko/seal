@@ -49,12 +49,9 @@ extern "C" {
 /* Critical Section */
 /* ------------------------------------------------------------------------------ */
 
-#ifndef NYA_CFG_MAX_SYSCALL_INT_PRIORITY
-#error "NYA_CFG_MAX_SYSCALL_INT_PRIORITY is not defined in nya_config.h!"
-#endif /* ifndef NYA_CFG_MAX_SYSCALL_INT_PRIORITY */
-
-#define NYA_PORT_NVIC_OFFSET    4U
-#define NYA_PORT_BASEPRI_VAL    (NYA_CFG_MAX_SYSCALL_INT_PRIORITY << NYA_PORT_NVIC_OFFSET)
+#define NYA_PORT_MAX_SYSCALL_INT_PRIORITY    4U
+#define NYA_PORT_NVIC_OFFSET                 4U
+#define NYA_PORT_BASEPRI_VAL                 (NYA_PORT_MAX_SYSCALL_INT_PRIORITY << NYA_PORT_NVIC_OFFSET)
 
 /* ------------------------------------------------------------------------------ */
 /* */

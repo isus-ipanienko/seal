@@ -65,6 +65,19 @@ typedef struct
 #endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
 } nya_tcb_t;
 
+typedef enum
+{
+    NYA_TCB_GROUP_MODE_DEFAULT,
+    NYA_TCB_GROUP_MODE_ROUND_ROBIN,
+    NYA_TCB_GROUP_MODE_TOP,
+} nya_tcb_group_mode_t;
+
+typedef struct
+{
+    nya_tcb_group_mode_t mode;
+    nya_tcb_t tcb[NYA_CFG_MAX_TASKS];
+} nya_tcb_group_t;
+
 /* ------------------------------------------------------------------------------ */
 /* */
 /* ------------------------------------------------------------------------------ */

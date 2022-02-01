@@ -110,7 +110,7 @@ static void _task_switch(void)
 
     nya_u8_t highest_priority = ctx.ready_to_index_lookup[ctx.priority_group_cluster_ready];
 
-    highest_priority = (ctx.ready_to_index_lookup[ctx.priority_group_ready[highest_priority]]) + (highest_priority * 8);
+    highest_priority = ctx.ready_to_index_lookup[ctx.priority_group_ready[highest_priority]] + (highest_priority * 8);
 
     if (highest_priority != ctx.curr_priority)
     {

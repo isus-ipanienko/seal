@@ -35,30 +35,34 @@
 
 typedef struct
 {
-    nya_tcb_group_t tcb_groups[NYA_CFG_GROUPS];
-    nya_u8_t group_ready[NYA_CFG_GROUPS];
+    nya_tcb_t tcb[NYA_CFG_TASK_CNT];
+    nya_tcb_t *next_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
+    nya_u8_t priority_group_ready_tasks[NYA_CFG_PRIORITY_LEVELS];
+    nya_u8_t priority_group_ready[8];
+    nya_u8_t priority_group_cluster_ready;
+    const nya_u8_t ready_to_index_lookup[256];
 } evsched_ctx_t;
 
 static evsched_ctx_t ctx =
 {
-    .tcb_groups =
+    .ready_to_index_lookup =
     {
-#define NYA_GROUP(_priority, _mode)             \
-    [_priority] =                               \
-    {                                           \
-        .mode   = _mode,                        \
-        .tcb    =                               \
-        {                                       \
-            NYA_GROUP_##_priority##_DEFINITIONS \
-        }                                       \
-    },
-#define NYA_TASK(_priority) \
-    [_priority] =           \
-    {                       \
-    },
-    NYA_GROUP_DEFINITIONS
-#undef NYA_GROUP
-#undef NYA_TASK
+        0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
     }
 };
 
@@ -67,6 +71,7 @@ static evsched_ctx_t ctx =
 /* ------------------------------------------------------------------------------ */
 
 static void _task_switch(void);
+void nya_init();
 
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
@@ -80,4 +85,37 @@ static void _task_switch(void)
     /*TODO: task switching */
 
     NYA_EXIT_CRITICAL();
+}
+
+void _init_tcb(nya_u16_t index,
+               nya_u8_t priority)
+{
+    ctx.tcb[index].priority = priority;
+
+    if (ctx.next_tcb_in_priority[priority] == 0)
+    {
+        ctx.next_tcb_in_priority[priority] = &ctx.tcb[index];
+    }
+    else
+    {
+        nya_tcb_t *next = ctx.next_tcb_in_priority[priority];
+
+        while (next->next_in_priority_group != 0)
+        {
+            next = next->next_in_priority_group;
+        }
+
+        next->next_in_priority_group = &ctx.tcb[index];
+    }
+}
+
+void nya_init()
+{
+    nya_u16_t index = 0;
+
+#define NYA_TASK(_priority) \
+    _init_tcb(index++,      \
+              _priority);
+    NYA_TASK_DEFINITIONS
+#undef NYA_TASK
 }

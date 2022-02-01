@@ -41,24 +41,18 @@ extern "C" {
 /* Tasks */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_CFG_GROUPS       2U           /**< Cannot be more than 64 */
-#define NYA_CFG_MAX_TASKS    8U           /**< Cannot be more than 8 */
+#define NYA_CFG_PRIORITY_LEVELS    2U /**< Cannot be more than 64 */
+#define NYA_CFG_TASK_CNT           8U /**< You can't use more than 256 tasks per priority level */
 
 /**fmt-off**/
-#define NYA_GROUP_DEFINITIONS                   \
-    NYA_GROUP(0, NYA_TCB_GROUP_MODE_DEFAULT)    \
-    NYA_GROUP(1, NYA_TCB_GROUP_MODE_DEFAULT)
-/**fmt-on**/
-
-/**fmt-off**/
-#define NYA_GROUP_0_DEFINITIONS \
+/*
+    NYA_TASK(_priority)
+*/
+#define NYA_TASK_DEFINITIONS    \
     NYA_TASK(0)                 \
+    NYA_TASK(1)                 \
+    NYA_TASK(1)                 \
     NYA_TASK(1)
-/**fmt-on**/
-
-/**fmt-off**/
-#define NYA_GROUP_1_DEFINITIONS \
-    NYA_TASK(0)
 /**fmt-on**/
 
 /* ------------------------------------------------------------------------------ */

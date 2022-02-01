@@ -48,7 +48,7 @@ typedef enum
 
 typedef void (*nya_task_fun_t)(void *);
 
-typedef struct
+typedef struct nya_tcb_t
 {
     nya_stack_t *stack_ptr;
 
@@ -63,20 +63,10 @@ typedef struct
 #if NYA_CFG_ENABLE_MESSAGE_QUEUES
     nya_msgq_t message_queue;
 #endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
+
+    nya_u8_t priority;
+    nya_tcb_t *next_in_priority_group;
 } nya_tcb_t;
-
-typedef enum
-{
-    NYA_TCB_GROUP_MODE_DEFAULT,
-    NYA_TCB_GROUP_MODE_ROUND_ROBIN,
-    NYA_TCB_GROUP_MODE_TOP,
-} nya_tcb_group_mode_t;
-
-typedef struct
-{
-    nya_tcb_group_mode_t mode;
-    nya_tcb_t tcb[NYA_CFG_MAX_TASKS];
-} nya_tcb_group_t;
 
 /* ------------------------------------------------------------------------------ */
 /* */

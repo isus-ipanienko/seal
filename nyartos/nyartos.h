@@ -61,21 +61,20 @@ typedef enum
 /* ------------------------------------------------------------------------------ */
 
 /**
- * @brief 
- * 
+ * @brief Call this function in main() to initialize and start the OS.
  */
-void nya_init(void);
+void nya_sys_init(void);
 
 /**
  * @brief
- *
+ * @note not implemented
  * @param ticks
  */
 void nya_sleep(nya_size_t ticks);
 
 /**
  * @brief
- *
+ * @note not implemented
  * @param id
  * @param timeout
  * @return NYA_ERROR
@@ -85,7 +84,7 @@ nya_error_t nya_sem_take(nya_size_t id,
 
 /**
  * @brief
- *
+ * @note not implemented
  * @param id
  * @return NYA_ERROR
  */

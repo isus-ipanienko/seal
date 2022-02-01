@@ -35,6 +35,7 @@
 
 typedef struct
 {
+    nya_u8_t curr_priority;
     nya_tcb_t tcb[NYA_CFG_TASK_CNT];
     nya_tcb_t *first_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
     nya_tcb_t *last_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
@@ -95,7 +96,8 @@ static evsched_ctx_t ctx =
 /* ------------------------------------------------------------------------------ */
 
 static void _task_switch(void);
-void nya_init();
+static void _init_tcb(nya_u16_t index,
+                      nya_u8_t priority);
 
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
@@ -106,13 +108,22 @@ static void _task_switch(void)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    /*TODO: task switching */
+    nya_u8_t highest_priority = ctx.ready_to_index_lookup[ctx.priority_group_cluster_ready];
+
+    highest_priority = (ctx.ready_to_index_lookup[ctx.priority_group_ready[highest_priority]]) + (highest_priority * 8);
+
+    if (highest_priority != ctx.curr_priority)
+    {
+        ctx.curr_priority = highest_priority;
+
+        /*TODO: context switch */
+    }
 
     NYA_EXIT_CRITICAL();
 }
 
-void _init_tcb(nya_u16_t index,
-               nya_u8_t priority)
+static void _init_tcb(nya_u16_t index,
+                      nya_u8_t priority)
 {
     ctx.tcb[index].priority = priority;
 
@@ -133,9 +144,10 @@ void _init_tcb(nya_u16_t index,
 
     ctx.priority_group_ready[ctx.priority_to_index_lookup[priority]] |= ctx.priority_to_mask_lookup[priority];
     ctx.priority_group_cluster_ready |= ctx.priority_to_mask_lookup[ctx.priority_to_index_lookup[priority]];
+    ctx.curr_priority = ctx.curr_priority < priority ? ctx.curr_priority : priority;
 }
 
-void nya_init()
+void nya_sys_init()
 {
     nya_u16_t index = 0;
 

@@ -37,6 +37,7 @@ typedef struct
 {
     nya_tcb_t tcb[NYA_CFG_TASK_CNT];
     nya_tcb_t *next_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
+    nya_tcb_t *last_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
     nya_u8_t priority_group_ready_tasks[NYA_CFG_PRIORITY_LEVELS];
     nya_u8_t priority_group_ready[8];
     nya_u8_t priority_group_cluster_ready;
@@ -95,17 +96,12 @@ void _init_tcb(nya_u16_t index,
     if (ctx.next_tcb_in_priority[priority] == 0)
     {
         ctx.next_tcb_in_priority[priority] = &ctx.tcb[index];
+        ctx.last_tcb_in_priority[priority] = &ctx.tcb[index];
     }
     else
     {
-        nya_tcb_t *next = ctx.next_tcb_in_priority[priority];
-
-        while (next->next_in_priority_group != 0)
-        {
-            next = next->next_in_priority_group;
-        }
-
-        next->next_in_priority_group = &ctx.tcb[index];
+        ctx.last_tcb_in_priority[priority]->next_in_priority_group = &ctx.tcb[index];
+        ctx.last_tcb_in_priority[priority] = &ctx.tcb[index];
     }
 }
 

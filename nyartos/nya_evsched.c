@@ -132,6 +132,7 @@ void _init_tcb(nya_u16_t index,
     }
 
     ctx.priority_group_ready[ctx.priority_to_index_lookup[priority]] |= ctx.priority_to_mask_lookup[priority];
+    ctx.priority_group_cluster_ready |= ctx.priority_to_mask_lookup[ctx.priority_to_index_lookup[priority]];
 }
 
 void nya_init()

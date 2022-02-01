@@ -36,17 +36,18 @@
 typedef struct
 {
     nya_tcb_t tcb[NYA_CFG_TASK_CNT];
-    nya_tcb_t *next_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
+    nya_tcb_t *first_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
     nya_tcb_t *last_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
-    nya_u8_t priority_group_ready_tasks[NYA_CFG_PRIORITY_LEVELS];
     nya_u8_t priority_group_ready[8];
     nya_u8_t priority_group_cluster_ready;
     const nya_u8_t ready_to_index_lookup[256];
+    const nya_u8_t priority_to_index_lookup[64];
+    const nya_u8_t priority_to_mask_lookup[64];
 } evsched_ctx_t;
 
 static evsched_ctx_t ctx =
 {
-    .ready_to_index_lookup =
+    .ready_to_index_lookup    =
     {
         0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
         4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
@@ -64,6 +65,28 @@ static evsched_ctx_t ctx =
         4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
         5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
         4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    },
+    .priority_to_index_lookup =
+    {
+        0, 0, 0, 0, 0, 0, 0, 0,
+        1, 1, 1, 1, 1, 1, 1, 1,
+        2, 2, 2, 2, 2, 2, 2, 2,
+        3, 3, 3, 3, 3, 3, 3, 3,
+        4, 4, 4, 4, 4, 4, 4, 4,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        7, 7, 7, 7, 7, 7, 7, 7
+    },
+    .priority_to_mask_lookup  =
+    {
+        1, 2, 4, 8, 16, 32, 64, 128,
+        1, 2, 4, 8, 16, 32, 64, 128,
+        1, 2, 4, 8, 16, 32, 64, 128,
+        1, 2, 4, 8, 16, 32, 64, 128,
+        1, 2, 4, 8, 16, 32, 64, 128,
+        1, 2, 4, 8, 16, 32, 64, 128,
+        1, 2, 4, 8, 16, 32, 64, 128,
+        1, 2, 4, 8, 16, 32, 64, 128
     }
 };
 
@@ -93,16 +116,22 @@ void _init_tcb(nya_u16_t index,
 {
     ctx.tcb[index].priority = priority;
 
-    if (ctx.next_tcb_in_priority[priority] == 0)
+    if (ctx.first_tcb_in_priority[priority] == NYA_NULL)
     {
-        ctx.next_tcb_in_priority[priority] = &ctx.tcb[index];
+        ctx.tcb[index].previous_in_priority_group = NYA_NULL;
+        ctx.tcb[index].next_in_priority_group = NYA_NULL;
+        ctx.first_tcb_in_priority[priority] = &ctx.tcb[index];
         ctx.last_tcb_in_priority[priority] = &ctx.tcb[index];
     }
     else
     {
+        ctx.tcb[index].previous_in_priority_group = ctx.last_tcb_in_priority[priority];
+        ctx.tcb[index].next_in_priority_group = NYA_NULL;
         ctx.last_tcb_in_priority[priority]->next_in_priority_group = &ctx.tcb[index];
         ctx.last_tcb_in_priority[priority] = &ctx.tcb[index];
     }
+
+    ctx.priority_group_ready[ctx.priority_to_index_lookup[priority]] |= ctx.priority_to_mask_lookup[priority];
 }
 
 void nya_init()

@@ -64,8 +64,9 @@ typedef struct nya_tcb_t
     nya_msgq_t message_queue;
 #endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
 
-    nya_u8_t priority;
-    nya_tcb_t *next_in_priority_group;
+    nya_u8_t priority;                     /**< Base priority */
+    nya_tcb_t *next_in_priority_group;     /**< Required by priority system */
+    nya_tcb_t *previous_in_priority_group; /**< Required for priority switching */
 } nya_tcb_t;
 
 /* ------------------------------------------------------------------------------ */

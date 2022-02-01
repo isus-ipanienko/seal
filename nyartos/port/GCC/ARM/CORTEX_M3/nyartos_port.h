@@ -36,6 +36,7 @@ extern "C" {
 
 #define NYA_TRUE     1U
 #define NYA_FALSE    0U
+#define NYA_NULL     ((void*)0)
 
 typedef unsigned char            nya_bool_t;
 

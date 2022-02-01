@@ -42,7 +42,7 @@ extern "C" {
 /* ------------------------------------------------------------------------------ */
 
 #define NYA_CFG_PRIORITY_LEVELS    2U /**< Cannot be more than 64 */
-#define NYA_CFG_TASK_CNT           8U /**< You can't use more than 256 tasks per priority level */
+#define NYA_CFG_TASK_CNT           4U /**< Not limited by the kernel */
 
 /**fmt-off**/
 /*

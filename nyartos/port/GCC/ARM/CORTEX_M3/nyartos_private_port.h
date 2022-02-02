@@ -31,14 +31,6 @@ extern "C" {
 #endif /* ifdef __cplusplus */
 
 /* ------------------------------------------------------------------------------ */
-/* Includes */
-/* ------------------------------------------------------------------------------ */
-
-#include "nyartos_port.h"
-#include "nyartos_private.h"
-#include "nyartos_config.h"
-
-/* ------------------------------------------------------------------------------ */
 /* CPU Settings */
 /* ------------------------------------------------------------------------------ */
 
@@ -50,14 +42,6 @@ extern "C" {
 #define NYA_PORT_NVIC_PENDSVSET_BIT    (1UL << 28UL)
 
 /* ------------------------------------------------------------------------------ */
-/* Critical Section */
-/* ------------------------------------------------------------------------------ */
-
-#define NYA_PORT_MAX_SYSCALL_INT_PRIORITY    4U
-#define NYA_PORT_NVIC_OFFSET                 4U
-#define NYA_PORT_BASEPRI_VAL                 (NYA_PORT_MAX_SYSCALL_INT_PRIORITY << NYA_PORT_NVIC_OFFSET)
-
-/* ------------------------------------------------------------------------------ */
 /* Context Switching */
 /* ------------------------------------------------------------------------------ */
 
@@ -66,6 +50,14 @@ extern "C" {
 /** @brief This function triggers PendSV. */
 void nya_port_context_switch(void);
 void nya_port_pendsv_handler(void);
+
+/* ------------------------------------------------------------------------------ */
+/* Critical Section */
+/* ------------------------------------------------------------------------------ */
+
+#define NYA_PORT_MAX_SYSCALL_INT_PRIORITY    4U
+#define NYA_PORT_NVIC_OFFSET                 4U
+#define NYA_PORT_BASEPRI_VAL                 (NYA_PORT_MAX_SYSCALL_INT_PRIORITY << NYA_PORT_NVIC_OFFSET)
 
 /* ------------------------------------------------------------------------------ */
 /* */

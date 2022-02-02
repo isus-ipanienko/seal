@@ -82,7 +82,6 @@ nya_sys_ctx_t nya_sys_ctx =
 /* Private Prototypes */
 /* ------------------------------------------------------------------------------ */
 
-static void _task_switch(void);
 static void _init_tcb(nya_u32_t index,
                       nya_u8_t priority,
                       nya_stack_t stack_size);
@@ -90,26 +89,6 @@ static void _init_tcb(nya_u32_t index,
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
 /* ------------------------------------------------------------------------------ */
-
-static void _task_switch(void)
-{
-    NYA_DECLARE_CRITICAL();
-    NYA_ENTER_CRITICAL();
-
-    nya_u8_t highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_cluster_ready];
-
-    highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_ready[highest_priority]] +
-                       (highest_priority * 8);
-
-    if (nya_sys_ctx.first_tcb_in_priority[highest_priority] != nya_sys_ctx.curr_task)
-    {
-        nya_sys_ctx.next_task = nya_sys_ctx.first_tcb_in_priority[highest_priority];
-
-        NYA_CTX_SWITCH();
-    }
-
-    NYA_EXIT_CRITICAL();
-}
 
 static void _init_tcb(nya_u32_t index,
                       nya_u8_t priority,
@@ -149,6 +128,30 @@ static void _init_tcb(nya_u32_t index,
     {
         nya_sys_ctx.next_task = &nya_sys_ctx.tcb[index];
     }
+}
+
+/* ------------------------------------------------------------------------------ */
+/* Global Declarations */
+/* ------------------------------------------------------------------------------ */
+
+void nya_task_switch(void)
+{
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
+
+    nya_u8_t highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_cluster_ready];
+
+    highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_ready[highest_priority]] +
+                       (highest_priority * 8);
+
+    if (nya_sys_ctx.first_tcb_in_priority[highest_priority] != nya_sys_ctx.curr_task)
+    {
+        nya_sys_ctx.next_task = nya_sys_ctx.first_tcb_in_priority[highest_priority];
+
+        NYA_CTX_SWITCH();
+    }
+
+    NYA_EXIT_CRITICAL();
 }
 
 /* ------------------------------------------------------------------------------ */

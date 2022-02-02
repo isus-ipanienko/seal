@@ -42,7 +42,7 @@ extern "C" {
 /* ------------------------------------------------------------------------------ */
 
 #define NYA_CFG_PRIORITY_LEVELS    2U /**< Cannot be more than 64 */
-#define NYA_CFG_TASK_CNT           4U /**< Not limited by the kernel */
+#define NYA_CFG_TASK_CNT           4U /**< Limited by the max value of nya_u32_t */
 
 /**fmt-off**/
 /*

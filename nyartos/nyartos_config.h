@@ -47,13 +47,12 @@ extern "C" {
 /**fmt-off**/
 /*
     NYA_TASK(_priority, _stack_size)
-    TODO: implement stack allocation
 */
 #define NYA_TASK_DEFINITIONS    \
-    NYA_TASK(0)                 \
-    NYA_TASK(1)                 \
-    NYA_TASK(1)                 \
-    NYA_TASK(1)
+    NYA_TASK(0, 1024)           \
+    NYA_TASK(1, 1024)           \
+    NYA_TASK(1, 1024)           \
+    NYA_TASK(1, 1024)
 /**fmt-on**/
 
 /* ------------------------------------------------------------------------------ */

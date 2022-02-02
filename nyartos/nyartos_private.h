@@ -36,11 +36,15 @@ extern "C" {
 
 #include "nyartos_private_port.h"
 #include "nyartos.h"
+#include "nyartos_config.h"
 
 /* ------------------------------------------------------------------------------ */
 /* Types */
 /* ------------------------------------------------------------------------------ */
 
+/**
+ * @brief Task states.
+ */
 typedef enum
 {
     NYA_TASK_RUNNING,
@@ -48,6 +52,9 @@ typedef enum
 
 typedef void (*nya_task_fun_t)(void *);
 
+/**
+ * @brief Task control block type.
+ */
 typedef struct nya_tcb_t
 {
     nya_stack_t *stack_ptr;
@@ -64,10 +71,33 @@ typedef struct nya_tcb_t
     nya_msgq_t message_queue;
 #endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
 
-    nya_u8_t priority;                     /**< Base priority */
+    nya_u8_t priority;                            /**< Base priority */
     struct nya_tcb_t *next_in_priority_group;     /**< Required by priority system */
     struct nya_tcb_t *previous_in_priority_group; /**< Required for priority switching */
 } nya_tcb_t;
+
+/**
+ * @brief System context type.
+ */
+typedef struct
+{
+    nya_tcb_t *curr_task;
+    nya_tcb_t *next_task;
+    nya_tcb_t tcb[NYA_CFG_TASK_CNT];
+    nya_tcb_t *first_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
+    nya_tcb_t *last_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
+    nya_u8_t priority_group_ready[8];
+    nya_u8_t priority_group_cluster_ready;
+    const nya_u8_t ready_to_index_lookup[256];
+    const nya_u8_t priority_to_index_lookup[64];
+    const nya_u8_t priority_to_mask_lookup[64];
+} nya_sys_ctx_t;
+
+/* ------------------------------------------------------------------------------ */
+/* Globals */
+/* ------------------------------------------------------------------------------ */
+
+extern nya_sys_ctx_t nya_sys_ctx;
 
 /* ------------------------------------------------------------------------------ */
 /* */

@@ -61,6 +61,16 @@ typedef enum
 /* ------------------------------------------------------------------------------ */
 
 /**
+ * @brief Call this function when entering a kernel aware ISR.
+ */
+void nya_enter_isr(void);
+
+/**
+ * @brief Call this function when exiting a kernel aware ISR.
+ */
+void nya_exit_isr(void);
+
+/**
  * @brief Call this function in main() to initialize and start the OS.
  */
 void nya_sys_init(void);

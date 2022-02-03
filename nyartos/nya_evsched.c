@@ -134,21 +134,56 @@ static void _init_tcb(nya_u32_t index,
 /* Global Declarations */
 /* ------------------------------------------------------------------------------ */
 
+void nya_enter_isr(void)
+{
+    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 255) panic(); ? */
+    nya_sys_ctx.isr_nesting_cnt++;
+}
+
+void nya_exit_isr(void)
+{
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
+
+    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 0) panic(); ? */
+    nya_sys_ctx.isr_nesting_cnt--;
+
+    if (nya_sys_ctx.isr_nesting_cnt == 0)
+    {
+        nya_u8_t highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_cluster_ready];
+
+        highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_ready[highest_priority]] +
+                           (highest_priority * 8);
+
+        if (nya_sys_ctx.first_tcb_in_priority[highest_priority] != nya_sys_ctx.curr_task)
+        {
+            nya_sys_ctx.next_task = nya_sys_ctx.first_tcb_in_priority[highest_priority];
+
+            NYA_CTX_SWITCH_FROM_ISR();
+        }
+    }
+
+    NYA_EXIT_CRITICAL();
+}
+
 void nya_task_switch(void)
 {
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    nya_u8_t highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_cluster_ready];
-
-    highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_ready[highest_priority]] +
-                       (highest_priority * 8);
-
-    if (nya_sys_ctx.first_tcb_in_priority[highest_priority] != nya_sys_ctx.curr_task)
+    if (nya_sys_ctx.isr_nesting_cnt == 0)
     {
-        nya_sys_ctx.next_task = nya_sys_ctx.first_tcb_in_priority[highest_priority];
+        nya_u8_t highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_cluster_ready];
 
-        NYA_CTX_SWITCH();
+        highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_ready[highest_priority]] +
+                           (highest_priority * 8);
+
+        if (nya_sys_ctx.first_tcb_in_priority[highest_priority] != nya_sys_ctx.curr_task)
+        {
+            nya_sys_ctx.next_task = nya_sys_ctx.first_tcb_in_priority[highest_priority];
+
+            NYA_CTX_SWITCH();
+        }
     }
 
     NYA_EXIT_CRITICAL();

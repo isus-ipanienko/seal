@@ -35,6 +35,7 @@ extern "C" {
 /* ------------------------------------------------------------------------------ */
 
 #include "nyartos.h"
+#include "nyartos_port.h"
 #include "nyartos_config.h"
 #include "nyartos_private_port.h"
 
@@ -84,10 +85,14 @@ typedef struct
     nya_tcb_t *curr_task;
     nya_tcb_t *next_task;
     nya_tcb_t tcb[NYA_CFG_TASK_CNT];
+
     nya_tcb_t *first_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
     nya_tcb_t *last_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
     nya_u8_t priority_group_ready[8];
     nya_u8_t priority_group_cluster_ready;
+
+    nya_u8_t isr_nesting_cnt;
+
     const nya_u8_t ready_to_index_lookup[256];
     const nya_u8_t priority_to_index_lookup[64];
     const nya_u8_t priority_to_mask_lookup[64];

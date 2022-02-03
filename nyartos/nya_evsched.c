@@ -33,9 +33,9 @@
 /* System Context */
 /* ------------------------------------------------------------------------------ */
 
-nya_sys_ctx_t nya_sys_ctx =
+nya_sys_ctx_t os_ctx =
 {
-    .ready_to_index_lookup    =
+    .resolve_prio_lkp =
     {
         0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
         4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
@@ -54,7 +54,7 @@ nya_sys_ctx_t nya_sys_ctx =
         5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
         4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
     },
-    .priority_to_index_lookup =
+    .prio_indx_lkp    =
     {
         0, 0, 0, 0, 0, 0, 0, 0,
         1, 1, 1, 1, 1, 1, 1, 1,
@@ -65,7 +65,7 @@ nya_sys_ctx_t nya_sys_ctx =
         6, 6, 6, 6, 6, 6, 6, 6,
         7, 7, 7, 7, 7, 7, 7, 7
     },
-    .priority_to_mask_lookup  =
+    .prio_mask_lkp    =
     {
         1, 2, 4, 8, 16, 32, 64, 128,
         1, 2, 4, 8, 16, 32, 64, 128,
@@ -94,39 +94,37 @@ static void _init_tcb(nya_u32_t index,
                       nya_u8_t priority,
                       nya_stack_t stack_size)
 {
-    nya_sys_ctx.tcb[index].priority = priority;
+    os_ctx.tcb[index].priority = priority;
 #if NYA_CFG_ENABLE_STATS
     nya_sys_ctx.tcb[index].stack_size = stack_size;
 #endif /* if NYA_CFG_ENABLE_STATS */
 
-    if (nya_sys_ctx.first_tcb_in_priority[priority] == NYA_NULL)
+    if (os_ctx.last_tcb_in_priority[priority] == NYA_NULL)
     {
-        nya_sys_ctx.tcb[index].previous_in_priority_group = NYA_NULL;
-        nya_sys_ctx.tcb[index].next_in_priority_group = NYA_NULL;
-        nya_sys_ctx.first_tcb_in_priority[priority] = &nya_sys_ctx.tcb[index];
-        nya_sys_ctx.last_tcb_in_priority[priority] = &nya_sys_ctx.tcb[index];
+        os_ctx.tcb[index].previous_in_priority_group = NYA_NULL;
+        os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
+        os_ctx.first_tcb_in_priority[priority] = &os_ctx.tcb[index];
+        os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
     }
     else
     {
-        nya_sys_ctx.tcb[index].previous_in_priority_group = nya_sys_ctx.last_tcb_in_priority[priority];
-        nya_sys_ctx.tcb[index].next_in_priority_group = NYA_NULL;
-        nya_sys_ctx.last_tcb_in_priority[priority]->next_in_priority_group = &nya_sys_ctx.tcb[index];
-        nya_sys_ctx.last_tcb_in_priority[priority] = &nya_sys_ctx.tcb[index];
+        os_ctx.tcb[index].previous_in_priority_group = os_ctx.last_tcb_in_priority[priority];
+        os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
+        os_ctx.last_tcb_in_priority[priority]->next_in_priority_group = &os_ctx.tcb[index];
+        os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
     }
 
-    nya_sys_ctx.priority_group_ready[nya_sys_ctx.priority_to_index_lookup[priority]] |=
-        nya_sys_ctx.priority_to_mask_lookup[priority];
-    nya_sys_ctx.priority_group_cluster_ready |=
-        nya_sys_ctx.priority_to_mask_lookup[nya_sys_ctx.priority_to_index_lookup[priority]];
+    os_ctx.priority_group_cluster_ready |= os_ctx.prio_mask_lkp[os_ctx.prio_indx_lkp[priority]];
+    os_ctx.priority_group_ready[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
 
-    if (nya_sys_ctx.next_task)
+    if (os_ctx.next_task)
     {
-        nya_sys_ctx.next_task = nya_sys_ctx.curr_task->priority < priority ? nya_sys_ctx.next_task :
-                                nya_sys_ctx.first_tcb_in_priority[priority];
+        os_ctx.next_task = os_ctx.curr_task->priority < priority ? os_ctx.next_task :
+                           os_ctx.first_tcb_in_priority[priority];
     }
     else
     {
-        nya_sys_ctx.next_task = &nya_sys_ctx.tcb[index];
+        os_ctx.next_task = &os_ctx.tcb[index];
     }
 }
 
@@ -134,55 +132,60 @@ static void _init_tcb(nya_u32_t index,
 /* Global Declarations */
 /* ------------------------------------------------------------------------------ */
 
-void nya_enter_isr(void)
-{
-    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 255) panic(); ? */
-    nya_sys_ctx.isr_nesting_cnt++;
-}
-
-void nya_exit_isr(void)
+void nya_task_switch(void)
 {
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 0) panic(); ? */
-    nya_sys_ctx.isr_nesting_cnt--;
-
-    if (nya_sys_ctx.isr_nesting_cnt == 0)
+    if (os_ctx.isr_nesting_cnt == 0)
     {
-        nya_u8_t highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_cluster_ready];
+        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_cluster_ready];
 
-        highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_ready[highest_priority]] +
+        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_ready[highest_priority]] +
                            (highest_priority * 8);
 
-        if (nya_sys_ctx.first_tcb_in_priority[highest_priority] != nya_sys_ctx.curr_task)
+        if (os_ctx.first_tcb_in_priority[highest_priority] != os_ctx.curr_task)
         {
-            nya_sys_ctx.next_task = nya_sys_ctx.first_tcb_in_priority[highest_priority];
+            os_ctx.next_task = os_ctx.first_tcb_in_priority[highest_priority];
 
-            NYA_CTX_SWITCH_FROM_ISR();
+            NYA_CTX_SWITCH();
         }
     }
 
     NYA_EXIT_CRITICAL();
 }
 
-void nya_task_switch(void)
+void nya_inc_systick(void)
 {
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if (nya_sys_ctx.isr_nesting_cnt == 0)
+    for (nya_size_t index = 0; index < NYA_CFG_TASK_CNT; index++)
     {
-        nya_u8_t highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_cluster_ready];
+        const nya_u8_t priority = os_ctx.tcb[index].priority;
 
-        highest_priority = nya_sys_ctx.ready_to_index_lookup[nya_sys_ctx.priority_group_ready[highest_priority]] +
-                           (highest_priority * 8);
-
-        if (nya_sys_ctx.first_tcb_in_priority[highest_priority] != nya_sys_ctx.curr_task)
+        if (os_ctx.tcb[index].delay)
         {
-            nya_sys_ctx.next_task = nya_sys_ctx.first_tcb_in_priority[highest_priority];
+            if (--os_ctx.tcb[index].delay == 0)
+            {
+                os_ctx.priority_group_cluster_ready |= os_ctx.prio_mask_lkp[priority];
+                os_ctx.priority_group_ready[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
 
-            NYA_CTX_SWITCH();
+                if (os_ctx.last_tcb_in_priority[priority] == NYA_NULL)
+                {
+                    os_ctx.tcb[index].previous_in_priority_group = NYA_NULL;
+                    os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
+                    os_ctx.first_tcb_in_priority[priority] = &os_ctx.tcb[index];
+                    os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
+                }
+                else
+                {
+                    os_ctx.tcb[index].previous_in_priority_group = os_ctx.last_tcb_in_priority[priority];
+                    os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
+                    os_ctx.last_tcb_in_priority[priority]->next_in_priority_group = &os_ctx.tcb[index];
+                    os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
+                }
+            }
         }
     }
 
@@ -193,9 +196,41 @@ void nya_task_switch(void)
 /* API Declarations */
 /* ------------------------------------------------------------------------------ */
 
+void nya_enter_isr(void)
+{
+    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 255) panic(); ? */
+    os_ctx.isr_nesting_cnt++;
+}
+
+void nya_exit_isr(void)
+{
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
+
+    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 0) panic(); ? */
+    os_ctx.isr_nesting_cnt--;
+
+    if (os_ctx.isr_nesting_cnt == 0)
+    {
+        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_cluster_ready];
+
+        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_ready[highest_priority]] +
+                           (highest_priority * 8);
+
+        if (os_ctx.first_tcb_in_priority[highest_priority] != os_ctx.curr_task)
+        {
+            os_ctx.next_task = os_ctx.first_tcb_in_priority[highest_priority];
+
+            NYA_CTX_SWITCH_FROM_ISR();
+        }
+    }
+
+    NYA_EXIT_CRITICAL();
+}
+
 void nya_sys_init()
 {
-    nya_u32_t index = 0;
+    nya_size_t index = 0;
 
 #define NYA_TASK(_priority, _stack_size) \
     _init_tcb(index++,                   \

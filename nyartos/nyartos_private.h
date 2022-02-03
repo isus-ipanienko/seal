@@ -93,22 +93,23 @@ typedef struct
 
     nya_u8_t isr_nesting_cnt;
 
-    const nya_u8_t ready_to_index_lookup[256];
-    const nya_u8_t priority_to_index_lookup[64];
-    const nya_u8_t priority_to_mask_lookup[64];
+    const nya_u8_t resolve_prio_lkp[256];
+    const nya_u8_t prio_indx_lkp[64];
+    const nya_u8_t prio_mask_lkp[64];
 } nya_sys_ctx_t;
 
 /* ------------------------------------------------------------------------------ */
 /* Globals */
 /* ------------------------------------------------------------------------------ */
 
-extern nya_sys_ctx_t nya_sys_ctx;
+extern nya_sys_ctx_t os_ctx;
 
 /* ------------------------------------------------------------------------------ */
 /* Global Prototypes */
 /* ------------------------------------------------------------------------------ */
 
 void nya_task_switch(void);
+void nya_inc_systick(void);
 
 /* ------------------------------------------------------------------------------ */
 /* */

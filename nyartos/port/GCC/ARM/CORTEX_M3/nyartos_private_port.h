@@ -46,7 +46,6 @@ extern "C" {
 
 /** @brief This function triggers PendSV. */
 void nya_port_context_switch(void);
-void nya_port_pendsv_handler(void);
 
 /* ------------------------------------------------------------------------------ */
 /* Critical Section */

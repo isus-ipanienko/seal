@@ -82,6 +82,21 @@ nya_sys_ctx_t os_ctx =
 /* Private Prototypes */
 /* ------------------------------------------------------------------------------ */
 
+/**
+ * @brief   Pops current priority queue.
+ * @note    Doesn't support priority boosting, yet.
+ *          TODO: add temp priority field to tcbs
+ * @note    Always call this from within a critical section.
+ */
+static void _pop_current_priority(void);
+
+/**
+ * @brief   Not fully implemented.
+ * 
+ * @param index 
+ * @param priority 
+ * @param stack_size 
+ */
 static void _init_tcb(nya_u32_t index,
                       nya_u8_t priority,
                       nya_stack_t stack_size);
@@ -89,6 +104,23 @@ static void _init_tcb(nya_u32_t index,
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
 /* ------------------------------------------------------------------------------ */
+
+static void _pop_current_priority(void)
+{
+    const nya_u8_t priority = os_ctx.curr_task->priority;
+
+    if (os_ctx.curr_task->next_in_prio_grp == NYA_NULL)
+    {
+        os_ctx.prio_grp_cluster_rdy &= ~os_ctx.prio_mask_lkp[priority];
+        os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] &= ~os_ctx.prio_mask_lkp[priority];
+        os_ctx.first_tcb_in_prio[os_ctx.curr_task->priority] = NYA_NULL;
+        os_ctx.last_tcb_in_prio[os_ctx.curr_task->priority] = NYA_NULL;
+    }
+    else
+    {
+        os_ctx.first_tcb_in_prio[os_ctx.curr_task->priority] = os_ctx.curr_task->next_in_prio_grp;
+    }
+}
 
 static void _init_tcb(nya_u32_t index,
                       nya_u8_t priority,
@@ -226,6 +258,19 @@ void nya_exit_isr(void)
     }
 
     NYA_EXIT_CRITICAL();
+}
+
+void nya_sleep(nya_size_t ticks)
+{
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
+
+    os_ctx.curr_task->delay = ticks;
+    _pop_current_priority();
+
+    NYA_EXIT_CRITICAL();
+
+    nya_task_switch();
 }
 
 void nya_sys_init()

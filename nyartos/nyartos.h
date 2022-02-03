@@ -76,9 +76,11 @@ void nya_exit_isr(void);
 void nya_sys_init(void);
 
 /**
- * @brief
- * @note not implemented
- * @param ticks
+ * @brief   This functions puts a task to sleep for a specified amount of systicks.
+ * @note    Use NYA_MS_TO_TICKS(), NYA_SECS_TO_TICKS(), NYA_MINS_TO_TICKS() and
+ *          NYA_HOURS_TO_TICKS() to convert from units of time to systicks.
+ * 
+ * @param   ticks - How much ticks to sleep the current task.
  */
 void nya_sleep(nya_size_t ticks);
 

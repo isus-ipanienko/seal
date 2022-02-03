@@ -99,28 +99,28 @@ static void _init_tcb(nya_u32_t index,
     nya_sys_ctx.tcb[index].stack_size = stack_size;
 #endif /* if NYA_CFG_ENABLE_STATS */
 
-    if (os_ctx.last_tcb_in_priority[priority] == NYA_NULL)
+    if (os_ctx.last_tcb_in_prio[priority] == NYA_NULL)
     {
-        os_ctx.tcb[index].previous_in_priority_group = NYA_NULL;
-        os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
-        os_ctx.first_tcb_in_priority[priority] = &os_ctx.tcb[index];
-        os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
+        os_ctx.tcb[index].prev_in_prio_grp = NYA_NULL;
+        os_ctx.tcb[index].next_in_prio_grp = NYA_NULL;
+        os_ctx.first_tcb_in_prio[priority] = &os_ctx.tcb[index];
+        os_ctx.last_tcb_in_prio[priority] = &os_ctx.tcb[index];
     }
     else
     {
-        os_ctx.tcb[index].previous_in_priority_group = os_ctx.last_tcb_in_priority[priority];
-        os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
-        os_ctx.last_tcb_in_priority[priority]->next_in_priority_group = &os_ctx.tcb[index];
-        os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
+        os_ctx.tcb[index].prev_in_prio_grp = os_ctx.last_tcb_in_prio[priority];
+        os_ctx.tcb[index].next_in_prio_grp = NYA_NULL;
+        os_ctx.last_tcb_in_prio[priority]->next_in_prio_grp = &os_ctx.tcb[index];
+        os_ctx.last_tcb_in_prio[priority] = &os_ctx.tcb[index];
     }
 
-    os_ctx.priority_group_cluster_ready |= os_ctx.prio_mask_lkp[os_ctx.prio_indx_lkp[priority]];
-    os_ctx.priority_group_ready[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
+    os_ctx.prio_grp_cluster_rdy |= os_ctx.prio_mask_lkp[os_ctx.prio_indx_lkp[priority]];
+    os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
 
     if (os_ctx.next_task)
     {
         os_ctx.next_task = os_ctx.curr_task->priority < priority ? os_ctx.next_task :
-                           os_ctx.first_tcb_in_priority[priority];
+                           os_ctx.first_tcb_in_prio[priority];
     }
     else
     {
@@ -139,14 +139,14 @@ void nya_task_switch(void)
 
     if (os_ctx.isr_nesting_cnt == 0)
     {
-        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_cluster_ready];
+        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_cluster_rdy];
 
-        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_ready[highest_priority]] +
+        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_rdy[highest_priority]] +
                            (highest_priority * 8);
 
-        if (os_ctx.first_tcb_in_priority[highest_priority] != os_ctx.curr_task)
+        if (os_ctx.first_tcb_in_prio[highest_priority] != os_ctx.curr_task)
         {
-            os_ctx.next_task = os_ctx.first_tcb_in_priority[highest_priority];
+            os_ctx.next_task = os_ctx.first_tcb_in_prio[highest_priority];
 
             NYA_CTX_SWITCH();
         }
@@ -168,22 +168,22 @@ void nya_inc_systick(void)
         {
             if (--os_ctx.tcb[index].delay == 0)
             {
-                os_ctx.priority_group_cluster_ready |= os_ctx.prio_mask_lkp[priority];
-                os_ctx.priority_group_ready[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
+                os_ctx.prio_grp_cluster_rdy |= os_ctx.prio_mask_lkp[priority];
+                os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
 
-                if (os_ctx.last_tcb_in_priority[priority] == NYA_NULL)
+                if (os_ctx.last_tcb_in_prio[priority] == NYA_NULL)
                 {
-                    os_ctx.tcb[index].previous_in_priority_group = NYA_NULL;
-                    os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
-                    os_ctx.first_tcb_in_priority[priority] = &os_ctx.tcb[index];
-                    os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
+                    os_ctx.tcb[index].prev_in_prio_grp = NYA_NULL;
+                    os_ctx.tcb[index].next_in_prio_grp = NYA_NULL;
+                    os_ctx.first_tcb_in_prio[priority] = &os_ctx.tcb[index];
+                    os_ctx.last_tcb_in_prio[priority] = &os_ctx.tcb[index];
                 }
                 else
                 {
-                    os_ctx.tcb[index].previous_in_priority_group = os_ctx.last_tcb_in_priority[priority];
-                    os_ctx.tcb[index].next_in_priority_group = NYA_NULL;
-                    os_ctx.last_tcb_in_priority[priority]->next_in_priority_group = &os_ctx.tcb[index];
-                    os_ctx.last_tcb_in_priority[priority] = &os_ctx.tcb[index];
+                    os_ctx.tcb[index].prev_in_prio_grp = os_ctx.last_tcb_in_prio[priority];
+                    os_ctx.tcb[index].next_in_prio_grp = NYA_NULL;
+                    os_ctx.last_tcb_in_prio[priority]->next_in_prio_grp = &os_ctx.tcb[index];
+                    os_ctx.last_tcb_in_prio[priority] = &os_ctx.tcb[index];
                 }
             }
         }
@@ -212,14 +212,14 @@ void nya_exit_isr(void)
 
     if (os_ctx.isr_nesting_cnt == 0)
     {
-        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_cluster_ready];
+        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_cluster_rdy];
 
-        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.priority_group_ready[highest_priority]] +
+        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_rdy[highest_priority]] +
                            (highest_priority * 8);
 
-        if (os_ctx.first_tcb_in_priority[highest_priority] != os_ctx.curr_task)
+        if (os_ctx.first_tcb_in_prio[highest_priority] != os_ctx.curr_task)
         {
-            os_ctx.next_task = os_ctx.first_tcb_in_priority[highest_priority];
+            os_ctx.next_task = os_ctx.first_tcb_in_prio[highest_priority];
 
             NYA_CTX_SWITCH_FROM_ISR();
         }

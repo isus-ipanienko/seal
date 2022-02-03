@@ -73,8 +73,8 @@ typedef struct nya_tcb_t
 #endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
 
     nya_u8_t priority;                            /**< Base priority */
-    struct nya_tcb_t *next_in_priority_group;     /**< Required by priority system */
-    struct nya_tcb_t *previous_in_priority_group; /**< Required for priority switching */
+    struct nya_tcb_t *next_in_prio_grp;     /**< Required by priority system */
+    struct nya_tcb_t *prev_in_prio_grp; /**< Required for priority switching */
 } nya_tcb_t;
 
 /**
@@ -86,10 +86,10 @@ typedef struct
     nya_tcb_t *next_task;
     nya_tcb_t tcb[NYA_CFG_TASK_CNT];
 
-    nya_tcb_t *first_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
-    nya_tcb_t *last_tcb_in_priority[NYA_CFG_PRIORITY_LEVELS];
-    nya_u8_t priority_group_ready[8];
-    nya_u8_t priority_group_cluster_ready;
+    nya_tcb_t *first_tcb_in_prio[NYA_CFG_PRIORITY_LEVELS];
+    nya_tcb_t *last_tcb_in_prio[NYA_CFG_PRIORITY_LEVELS];
+    nya_u8_t prio_grp_rdy[8];
+    nya_u8_t prio_grp_cluster_rdy;
 
     nya_u8_t isr_nesting_cnt;
 

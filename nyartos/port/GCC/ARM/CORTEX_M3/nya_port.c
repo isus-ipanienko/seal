@@ -51,35 +51,35 @@ void nya_port_pendsv_handler(void)
 {
     __asm volatile
     (
-        "cpsid i                                \n"  /* disable interrupts */
-        "mov r0, %0                             \n"
-        "ldr r1, [r0]                           \n"
-        "msr basepri, r1                        \n"
-        "dsb                                    \n"
-        "isb                                    \n"
-        "cpsie i                                \n"
-        "                                       \n"
-        "stmdb r0!, {r4-r11, r14}               \n"  /* push registers */
-        "                                       \n"
-        "mov r1, %1                             \n"  /* load &nya_sys_ctx (and &nya_sys_ctx.curr_task) */
-        "ldr r2, [r1]                           \n"  /* get address of current tcb */
-        "str r0, [r2]                           \n"  /* store stack pointer to current tcb->stack_pointer */
-        "mov r2, %2                             \n"  /* load &nya_sys_ctx.next_task */
-        "ldr r3, [r2]                           \n"  /* get address of next tcb */
-        "str r3, [r1]                           \n"  /* store adress of nya_sys_ctx.next_task to nya_sys_ctx.curr_task */
-        "                                       \n"
-        "ldr r0, [r3]                           \n"  /* load new process stack pointer */
-        "ldmia r0!, {r4-r11, r14}               \n"  /* pop registers */
-        "msr psp, r0                            \n"  /* load new process stack pointer */
-        "                                       \n"
-        "cpsid i                                \n"  /* enable interrupts */
-        "mov r0, #0                             \n"
-        "msr basepri, r0                        \n"
-        "dsb                                    \n"
-        "isb                                    \n"
-        "cpsie i                                \n"
+        "cpsid i                  \n"  /* disable interrupts */
+        "mov r0, %0               \n"
+        "ldr r1, [r0]             \n"
+        "msr basepri, r1          \n"
+        "dsb                      \n"
+        "isb                      \n"
+        "cpsie i                  \n"
+        "                         \n"
+        "stmdb r0!, {r4-r11, r14} \n"  /* push registers */
+        "                         \n"
+        "mov r1, %1               \n"  /* load &nya_sys_ctx.curr_task */
+        "ldr r2, [r1]             \n"  /* get address of current tcb */
+        "str r0, [r2]             \n"  /* store stack pointer to current tcb->stack_pointer */
+        "mov r2, %2               \n"  /* load &nya_sys_ctx.next_task */
+        "ldr r3, [r2]             \n"  /* get address of next tcb */
+        "str r3, [r1]             \n"  /* store adress of nya_sys_ctx.next_task to nya_sys_ctx.curr_task */
+        "                         \n"
+        "ldr r0, [r3]             \n"  /* load new process stack pointer */
+        "ldmia r0!, {r4-r11, r14} \n"  /* pop registers */
+        "msr psp, r0              \n"  /* load new process stack pointer */
+        "                         \n"
+        "cpsid i                  \n"  /* enable interrupts */
+        "mov r0, #0               \n"
+        "msr basepri, r0          \n"
+        "dsb                      \n"
+        "isb                      \n"
+        "cpsie i                  \n"
         :
-        : "i" (NYA_PORT_BASEPRI_VAL), "r" (nya_sys_ctx), "r" (nya_sys_ctx.next_task)
+        : "i" (NYA_PORT_BASEPRI_VAL), "r" (nya_sys_ctx.curr_task), "r" (nya_sys_ctx.next_task)
         : "memory"
     );
 }

@@ -110,8 +110,7 @@ nya_sys_ctx_t os_ctx =
 /* ------------------------------------------------------------------------------ */
 
 /**
- * @brief   Not fully implemented.
- *
+ * @brief   Initializes a single task control block.
  * @param id
  * @param priority
  * @param stack_size
@@ -131,7 +130,8 @@ static void _init_tcb(nya_size_t id,
                       nya_task_func_t entry_func)
 {
     os_ctx.tcb[id].priority = priority;
-    os_ctx.tcb[id].stack_ptr = nya_stacks[id];
+    os_ctx.tcb[id].stack_ptr = nya_port_init_stack(entry_func,
+                                                   nya_stacks[id]);
 #if NYA_CFG_ENABLE_STATS
     os_ctx.tcb[id].stack_size = stack_size;
     os_ctx.tcb[id].stack_end = &nya_stacks[id][stack_size - 1];

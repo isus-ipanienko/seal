@@ -140,6 +140,9 @@ void nya_scheduler_switch(void);
 
 void nya_time_systick(void);
 
+nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
+                                 nya_stack_t *stack_ptr);
+
 /* ------------------------------------------------------------------------------ */
 /* */
 /* ------------------------------------------------------------------------------ */

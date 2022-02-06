@@ -30,6 +30,24 @@
 #include "nyartos_private.h"
 
 /* ------------------------------------------------------------------------------ */
+/* Stack */
+/* ------------------------------------------------------------------------------ */
+
+nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
+                                 nya_stack_t *stack_ptr)
+{
+    stack_ptr = (nya_stack_t *)((nya_stack_t)(stack_ptr) & 0xfffffff8U); /* align to 8 bytes */
+    *(--stack_ptr) = (nya_stack_t)0x01000000UL;                          /* xPSR : set thumb state */
+    *(--stack_ptr) = (nya_stack_t)entry_func & (nya_stack_t)0xfffffffe;  /* task entry */
+    *(--stack_ptr) = (nya_stack_t)0x00000000UL;                          /* LR TODO: add task return func  */
+    stack_ptr -= 4;                                                      /* R12, R3 - R1 */
+    *(--stack_ptr) = (nya_stack_t)0x00000000UL;                          /* R0 TODO: add task param */
+    stack_ptr -= 8;                                                      /* R11 - R4 */
+
+    return stack_ptr;
+}
+
+/* ------------------------------------------------------------------------------ */
 /* Context Switching */
 /* ------------------------------------------------------------------------------ */
 
@@ -112,7 +130,8 @@ void nya_port_pendsv_handler(void)
         "isb                      \n"
         "cpsie i                  \n"
         "                         \n"
-        "stmdb r0!, {r4-r11, r14} \n"  /* push registers */
+        "mrs r0, psp              \n"
+        "stmdb r0!, {r4-r11}      \n"  /* push registers */
         "                         \n"
         "mov r1, %1               \n"  /* load &nya_sys_ctx.curr_task */
         "ldr r2, [r1]             \n"  /* get address of current tcb */
@@ -122,7 +141,7 @@ void nya_port_pendsv_handler(void)
         "str r3, [r1]             \n"  /* store adress of nya_sys_ctx.next_task to nya_sys_ctx.curr_task */
         "                         \n"
         "ldr r0, [r3]             \n"  /* load new process stack pointer */
-        "ldmia r0!, {r4-r11, r14} \n"  /* pop registers */
+        "ldmia r0!, {r4-r11}      \n"  /* pop registers */
         "msr psp, r0              \n"  /* load new process stack pointer */
         "                         \n"
         "cpsid i                  \n"  /* enable interrupts */

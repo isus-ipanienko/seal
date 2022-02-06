@@ -52,7 +52,8 @@ extern "C" {
 
 /*TODO: add asserts to check if config is valid */
 
-/**fmt-off**/
+/* *INDENT-OFF* */
+
 /*
     NYA_TASK(_priority, _stack_size, _name)
 */
@@ -60,7 +61,8 @@ extern "C" {
     NYA_TASK(0, 1024, led)      \
     NYA_TASK(0, 1024, print)    \
     NYA_TASK(1, 512, idle)
-/**fmt-on**/
+
+/* *INDENT-ON* */
 
 /* ------------------------------------------------------------------------------ */
 /* */

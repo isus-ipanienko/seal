@@ -33,7 +33,8 @@
 /* Stacks */
 /* ------------------------------------------------------------------------------ */
 
-/**fmt-off**/
+/* *INDENT-OFF* */
+
 typedef enum
 {
 #define NYA_TASK(_priority,   \
@@ -60,7 +61,8 @@ static nya_stack_t * nya_stacks[] =
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 };
-/**fmt-on**/
+
+/* *INDENT-ON* */
 
 /* ------------------------------------------------------------------------------ */
 /* System Context */

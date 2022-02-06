@@ -35,19 +35,10 @@
 
 /* *INDENT-OFF* */
 
-typedef enum
-{
 #define NYA_TASK(_priority,   \
                  _stack_size, \
-                 _name)       \
-    NYA_TASK_ID_##_name,
-    NYA_TASK_DEFINITIONS
-#undef NYA_TASK
-} nya_task_id_t;
-
-#define NYA_TASK(_priority,   \
-                 _stack_size, \
-                 _name)       \
+                 _name,       \
+                 _entry_func) \
     static nya_stack_t nya_stack_##_name[_stack_size + NYA_CFG_STACK_CANARY_LEN];
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
@@ -56,7 +47,8 @@ static nya_stack_t * nya_stacks[] =
 {
 #define NYA_TASK(_priority,   \
                  _stack_size, \
-                 _name)       \
+                 _name,       \
+                 _entry_func) \
     [NYA_TASK_ID_##_name] = nya_stack_##_name,
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
@@ -143,7 +135,8 @@ static void _push_priority(nya_size_t id,
  */
 static void _init_tcb(nya_size_t id,
                       nya_u8_t priority,
-                      nya_stack_t stack_size);
+                      nya_stack_t stack_size,
+                      nya_task_func_t entry_func);
 
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
@@ -191,7 +184,8 @@ static void _push_priority(nya_size_t id,
 
 static void _init_tcb(nya_size_t id,
                       nya_u8_t priority,
-                      nya_stack_t stack_size)
+                      nya_stack_t stack_size,
+                      nya_task_func_t entry_func)
 {
     os_ctx.tcb[id].priority = priority;
     os_ctx.tcb[id].stack_ptr = nya_stacks[id];
@@ -302,10 +296,14 @@ void nya_sleep(nya_size_t ticks)
 
 void nya_sys_init()
 {
-#define NYA_TASK(_priority, _stack_size, _name) \
-    _init_tcb(NYA_TASK_ID_##_name,              \
-              _priority,                        \
-              _stack_size);
+#define NYA_TASK(_priority,        \
+                 _stack_size,      \
+                 _name,            \
+                 _entry_func)      \
+    _init_tcb(NYA_TASK_ID_##_name, \
+              _priority,           \
+              _stack_size,         \
+              _entry_func);
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 }

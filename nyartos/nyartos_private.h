@@ -36,7 +36,8 @@ extern "C" {
 
 #include "nyartos.h"
 #include "nyartos_port.h"
-#include "nyartos_config.h"
+#include "nyartos_system_config.h"
+#include "nyartos_task_config.h"
 #include "nyartos_private_port.h"
 
 /* ------------------------------------------------------------------------------ */
@@ -50,8 +51,6 @@ typedef enum
 {
     NYA_TASK_RUNNING,
 } nya_task_state_t;
-
-typedef void (*nya_task_fun_t)(void *);
 
 /**
  * @brief Task control block type.

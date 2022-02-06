@@ -23,53 +23,51 @@
  * SOFTWARE.
  */
 
-#ifndef NYARTOS_CONFIG_H
-#define NYARTOS_CONFIG_H
+#ifndef NYA_TASK_CONFIG_H
+#define NYA_TASK_CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* ifdef __cplusplus */
 
-/* ------------------------------------------------------------------------------ */
-/* Stack Settings */
-/* ------------------------------------------------------------------------------ */
-
-#define NYA_CFG_STACK_CANARY_LEN    0U
-
-/* ------------------------------------------------------------------------------ */
-/* Task Settings */
-/* ------------------------------------------------------------------------------ */
-
-#define NYA_CFG_ENABLE_STATS             0U
-#define NYA_CFG_ENABLE_MESSAGE_QUEUES    0U
-
-/* ------------------------------------------------------------------------------ */
-/* Tasks */
-/* ------------------------------------------------------------------------------ */
-
-#define NYA_CFG_PRIORITY_LEVELS    2U /**< max: 64 */
-#define NYA_CFG_TASK_CNT           4U /**< max: nya_size_t max value */
-
-/*TODO: add asserts to check if config is valid */
+typedef void (*nya_task_func_t)(void *);
 
 /* *INDENT-OFF* */
 
 /*
-    NYA_TASK(_priority, _stack_size, _name)
+    NYA_TASK(_priority,
+             _stack_size,
+             _name, 
+             _entry_func)
 */
-#define NYA_TASK_DEFINITIONS    \
-    NYA_TASK(0, 1024, led)      \
-    NYA_TASK(0, 1024, print)    \
-    NYA_TASK(1, 512, idle)
+#define NYA_TASK_DEFINITIONS               \
+    NYA_TASK(0, 1024, LED, led_entry)      \
+    NYA_TASK(0, 1024, PRINT, print_entry)  \
+    NYA_TASK(1, 512, IDLE, idle_entry)
+
+#define NYA_TASK(_priority,        \
+                 _stack_size,      \
+                 _name,            \
+                 _entry_func)      \
+    void _entry_func(void *);
+    NYA_TASK_DEFINITIONS
+#undef NYA_TASK
+
+typedef enum
+{
+#define NYA_TASK(_priority,   \
+                 _stack_size, \
+                 _name,       \
+                 _entry_func) \
+    NYA_TASK_ID_##_name,
+    NYA_TASK_DEFINITIONS
+#undef NYA_TASK
+} nya_task_id_t;
 
 /* *INDENT-ON* */
-
-/* ------------------------------------------------------------------------------ */
-/* */
-/* ------------------------------------------------------------------------------ */
 
 #ifdef __cplusplus
 }
 #endif /* ifdef __cplusplus */
 
-#endif /* ifndef NYARTOS_CONFIG_H */
+#endif /* ifndef NYA_TASK_CONFIG_H */

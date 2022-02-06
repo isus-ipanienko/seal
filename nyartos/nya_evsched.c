@@ -106,7 +106,7 @@ static void _push_priority(nya_size_t index,
  * @param priority
  * @param stack_size
  */
-static void _init_tcb(nya_u32_t index,
+static void _init_tcb(nya_size_t index,
                       nya_u8_t priority,
                       nya_stack_t stack_size);
 
@@ -154,7 +154,7 @@ static void _push_priority(nya_size_t index,
     os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
 }
 
-static void _init_tcb(nya_u32_t index,
+static void _init_tcb(nya_size_t index,
                       nya_u8_t priority,
                       nya_stack_t stack_size)
 {

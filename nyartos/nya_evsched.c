@@ -30,6 +30,39 @@
 #include "nyartos_private.h"
 
 /* ------------------------------------------------------------------------------ */
+/* Stacks */
+/* ------------------------------------------------------------------------------ */
+
+/**fmt-off**/
+typedef enum
+{
+#define NYA_TASK(_priority,   \
+                 _stack_size, \
+                 _name)       \
+    NYA_TASK_ID_##_name,
+    NYA_TASK_DEFINITIONS
+#undef NYA_TASK
+} nya_task_id_t;
+
+#define NYA_TASK(_priority,   \
+                 _stack_size, \
+                 _name)       \
+    static nya_stack_t nya_stack_##_name[_stack_size + NYA_CFG_STACK_CANARY_LEN];
+    NYA_TASK_DEFINITIONS
+#undef NYA_TASK
+
+static nya_stack_t * nya_stacks[] =
+{
+#define NYA_TASK(_priority,   \
+                 _stack_size, \
+                 _name)       \
+    [NYA_TASK_ID_##_name] = nya_stack_##_name,
+    NYA_TASK_DEFINITIONS
+#undef NYA_TASK
+};
+/**fmt-on**/
+
+/* ------------------------------------------------------------------------------ */
 /* System Context */
 /* ------------------------------------------------------------------------------ */
 
@@ -96,17 +129,17 @@ static void _pop_priority(nya_u8_t priority);
  *          TODO: add temp priority field to tcbs
  * @note    Always call this from within a critical section.
  */
-static void _push_priority(nya_size_t index,
+static void _push_priority(nya_size_t id,
                            nya_u8_t priority);
 
 /**
  * @brief   Not fully implemented.
  *
- * @param index
+ * @param id
  * @param priority
  * @param stack_size
  */
-static void _init_tcb(nya_size_t index,
+static void _init_tcb(nya_size_t id,
                       nya_u8_t priority,
                       nya_stack_t stack_size);
 
@@ -131,22 +164,22 @@ static void _pop_priority(nya_u8_t priority)
     }
 }
 
-static void _push_priority(nya_size_t index,
+static void _push_priority(nya_size_t id,
                            nya_u8_t priority)
 {
     if (os_ctx.prioq[priority].count == 0)
     {
-        os_ctx.tcb[index].prev_in_prio = NYA_NULL;
-        os_ctx.tcb[index].next_in_prio = NYA_NULL;
-        os_ctx.prioq[priority].first = &os_ctx.tcb[index];
-        os_ctx.prioq[priority].last = &os_ctx.tcb[index];
+        os_ctx.tcb[id].prev_in_prio = NYA_NULL;
+        os_ctx.tcb[id].next_in_prio = NYA_NULL;
+        os_ctx.prioq[priority].first = &os_ctx.tcb[id];
+        os_ctx.prioq[priority].last = &os_ctx.tcb[id];
     }
     else
     {
-        os_ctx.tcb[index].prev_in_prio = os_ctx.prioq[priority].last;
-        os_ctx.tcb[index].next_in_prio = NYA_NULL;
-        os_ctx.prioq[priority].last->next_in_prio = &os_ctx.tcb[index];
-        os_ctx.prioq[priority].last = &os_ctx.tcb[index];
+        os_ctx.tcb[id].prev_in_prio = os_ctx.prioq[priority].last;
+        os_ctx.tcb[id].next_in_prio = NYA_NULL;
+        os_ctx.prioq[priority].last->next_in_prio = &os_ctx.tcb[id];
+        os_ctx.prioq[priority].last = &os_ctx.tcb[id];
     }
 
     os_ctx.prioq[priority].count++;
@@ -154,16 +187,18 @@ static void _push_priority(nya_size_t index,
     os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
 }
 
-static void _init_tcb(nya_size_t index,
+static void _init_tcb(nya_size_t id,
                       nya_u8_t priority,
                       nya_stack_t stack_size)
 {
-    os_ctx.tcb[index].priority = priority;
+    os_ctx.tcb[id].priority = priority;
+    os_ctx.tcb[id].stack_ptr = nya_stacks[id];
 #if NYA_CFG_ENABLE_STATS
-    nya_sys_ctx.tcb[index].stack_size = stack_size;
+    os_ctx.tcb[id].stack_size = stack_size;
+    os_ctx.tcb[id].stack_end = &nya_stacks[id][stack_size - 1];
 #endif /* if NYA_CFG_ENABLE_STATS */
 
-    _push_priority(index,
+    _push_priority(id,
                    priority);
 }
 
@@ -199,14 +234,14 @@ void nya_inc_systick(void)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    for (nya_size_t index = 0; index < NYA_CFG_TASK_CNT; index++)
+    for (nya_size_t id = 0; id < NYA_CFG_TASK_CNT; id++)
     {
-        if (os_ctx.tcb[index].delay)
+        if (os_ctx.tcb[id].delay)
         {
-            if (--os_ctx.tcb[index].delay == 0)
+            if (--os_ctx.tcb[id].delay == 0)
             {
-                _push_priority(index,
-                               os_ctx.tcb[index].priority);
+                _push_priority(id,
+                               os_ctx.tcb[id].priority);
             }
         }
     }
@@ -265,11 +300,9 @@ void nya_sleep(nya_size_t ticks)
 
 void nya_sys_init()
 {
-    nya_size_t index = 0;
-
-#define NYA_TASK(_priority, _stack_size) \
-    _init_tcb(index++,                   \
-              _priority,                 \
+#define NYA_TASK(_priority, _stack_size, _name) \
+    _init_tcb(NYA_TASK_ID_##_name,              \
+              _priority,                        \
               _stack_size);
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK

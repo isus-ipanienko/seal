@@ -27,6 +27,8 @@
 
 void print_entry(void *param)
 {
+    NYA_UNUSED(param);
+
     while (1)
     {
         nya_sleep(250);

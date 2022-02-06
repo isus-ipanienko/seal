@@ -27,6 +27,8 @@
 
 void led_entry(void *param)
 {
+    NYA_UNUSED(param);
+
     while (1)
     {
         HAL_GPIO_TogglePin(

@@ -41,8 +41,10 @@ extern "C" {
 /* Tasks */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_CFG_PRIORITY_LEVELS    2U /**< Cannot be more than 64 */
-#define NYA_CFG_TASK_CNT           4U /**< Limited by the max value of nya_size_t */
+#define NYA_CFG_PRIORITY_LEVELS    2U /**< max: 64 */
+#define NYA_CFG_TASK_CNT           4U /**< max: nya_size_t max value */
+
+/*TODO: add asserts to check if config is valid */
 
 /**fmt-off**/
 /*

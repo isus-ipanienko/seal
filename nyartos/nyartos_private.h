@@ -60,10 +60,9 @@ typedef struct nya_tcb_t
 {
     nya_stack_t *stack_ptr;
 
-#if NYA_CFG_ENABLE_STATS
-    nya_stack_t *stack_end;
-    nya_size_t stack_size;
-#endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
+    nya_u8_t priority;              /**< Base priority */
+    struct nya_tcb_t *next_in_prio; /**< Required by priority system */
+    struct nya_tcb_t *prev_in_prio; /**< Required for priority switching */
 
     nya_size_t delay;
     nya_task_state_t state;
@@ -72,10 +71,22 @@ typedef struct nya_tcb_t
     nya_msgq_t message_queue;
 #endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
 
-    nya_u8_t priority;                            /**< Base priority */
-    struct nya_tcb_t *next_in_prio_grp;     /**< Required by priority system */
-    struct nya_tcb_t *prev_in_prio_grp; /**< Required for priority switching */
+#if NYA_CFG_ENABLE_STATS
+    nya_stack_t *stack_end;
+    nya_size_t stack_size;
+#endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
 } nya_tcb_t;
+
+/**
+ * @brief Stores information about a single priority level.
+ */
+typedef struct
+{
+    nya_tcb_t *first;
+    nya_tcb_t *last;
+    nya_size_t count; /**< Number of waiting tasks in this priority. */
+    nya_u8_t mode;    /**< For future use. */
+} nya_prioq_t;
 
 /**
  * @brief System context type.
@@ -84,10 +95,9 @@ typedef struct
 {
     nya_tcb_t *curr_task;
     nya_tcb_t *next_task;
-    nya_tcb_t tcb[NYA_CFG_TASK_CNT];
 
-    nya_tcb_t *first_tcb_in_prio[NYA_CFG_PRIORITY_LEVELS];
-    nya_tcb_t *last_tcb_in_prio[NYA_CFG_PRIORITY_LEVELS];
+    nya_tcb_t tcb[NYA_CFG_TASK_CNT];
+    nya_prioq_t prioq[NYA_CFG_PRIORITY_LEVELS];
     nya_u8_t prio_grp_rdy[8];
     nya_u8_t prio_grp_cluster_rdy;
 

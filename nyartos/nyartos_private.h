@@ -134,7 +134,7 @@ void nya_scheduler_pop_priority(nya_u8_t priority);
  * @note    Always call this from within a critical section.
  */
 void nya_scheduler_push_priority(nya_size_t id,
-                             nya_u8_t priority);
+                                 nya_u8_t priority);
 
 void nya_scheduler_switch(void);
 

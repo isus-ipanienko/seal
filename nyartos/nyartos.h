@@ -74,7 +74,7 @@ void nya_exit_isr(void);
 /**
  * @brief Call this function in main() to initialize and start the OS.
  */
-void nya_sys_init(void);
+void nya_init(void);
 
 /**
  * @brief   This functions puts a task to sleep for a specified amount of systicks.

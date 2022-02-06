@@ -23,45 +23,49 @@
  * SOFTWARE.
  */
 
-#ifndef NYARTOS_SYSTEM_CONFIG_H
-#define NYARTOS_SYSTEM_CONFIG_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* ifdef __cplusplus */
-
 /* ------------------------------------------------------------------------------ */
-/* Stack Settings */
+/* Includes */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_CFG_STACK_CANARY_SECTORS    0U
+#include "nyartos_private.h"
 
 /* ------------------------------------------------------------------------------ */
-/* Task Settings */
+/* Global Declarations */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_CFG_ENABLE_STATS             0U
-#define NYA_CFG_ENABLE_MESSAGE_QUEUES    0U
+void nya_time_systick(void)
+{
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
 
-/* ------------------------------------------------------------------------------ */
-/* Tasks */
-/* ------------------------------------------------------------------------------ */
+    for (nya_size_t id = 0; id < NYA_CFG_TASK_CNT; id++)
+    {
+        if (os_ctx.tcb[id].delay)
+        {
+            if (--os_ctx.tcb[id].delay == 0)
+            {
+                nya_scheduler_push_priority(id,
+                                            os_ctx.tcb[id].priority);
+            }
+        }
+    }
 
-#define NYA_CFG_PRIORITY_LEVELS    2U /**< max: 64 */
-#define NYA_CFG_TASK_CNT           4U /**< max: nya_size_t max value */
-
-/* ------------------------------------------------------------------------------ */
-/* Config Asserts */
-/* ------------------------------------------------------------------------------ */
-
-/*TODO: add asserts to check if config is valid */
-
-/* ------------------------------------------------------------------------------ */
-/* */
-/* ------------------------------------------------------------------------------ */
-
-#ifdef __cplusplus
+    NYA_EXIT_CRITICAL();
 }
-#endif /* ifdef __cplusplus */
 
-#endif /* ifndef NYARTOS_SYSTEM_CONFIG_H */
+/* ------------------------------------------------------------------------------ */
+/* API Declarations */
+/* ------------------------------------------------------------------------------ */
+
+void nya_sleep(nya_size_t ticks)
+{
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
+
+    os_ctx.curr_task->delay = ticks;
+    nya_scheduler_pop_priority(os_ctx.curr_task->priority);
+
+    NYA_EXIT_CRITICAL();
+
+    nya_scheduler_switch();
+}

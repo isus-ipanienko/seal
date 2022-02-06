@@ -22,3 +22,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "nyartos.h"
+#include "main.h"
+
+void print_entry(void *param)
+{
+    while (1)
+    {
+        nya_sleep(250);
+    }
+}

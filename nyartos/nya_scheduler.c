@@ -39,7 +39,7 @@
                  _stack_size, \
                  _name,       \
                  _entry_func) \
-    static nya_stack_t nya_stack_##_name[_stack_size + NYA_CFG_STACK_CANARY_LEN];
+    static nya_stack_t nya_stack_##_name[NYA_PORT_BYTES_TO_SECTORS(_stack_size) + NYA_CFG_STACK_CANARY_SECTORS];
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 
@@ -110,23 +110,6 @@ nya_sys_ctx_t os_ctx =
 /* ------------------------------------------------------------------------------ */
 
 /**
- * @brief   Pops a priority queue.
- * @note    Doesn't support priority boosting, yet.
- *          TODO: add temp priority field to tcbs
- * @note    Always call this from within a critical section.
- */
-static void _pop_priority(nya_u8_t priority);
-
-/**
- * @brief   Pushes a task to a priority queue.
- * @note    Doesn't support priority boosting, yet.
- *          TODO: add temp priority field to tcbs
- * @note    Always call this from within a critical section.
- */
-static void _push_priority(nya_size_t id,
-                           nya_u8_t priority);
-
-/**
  * @brief   Not fully implemented.
  *
  * @param id
@@ -142,7 +125,27 @@ static void _init_tcb(nya_size_t id,
 /* Private Declarations */
 /* ------------------------------------------------------------------------------ */
 
-static void _pop_priority(nya_u8_t priority)
+static void _init_tcb(nya_size_t id,
+                      nya_u8_t priority,
+                      nya_stack_t stack_size,
+                      nya_task_func_t entry_func)
+{
+    os_ctx.tcb[id].priority = priority;
+    os_ctx.tcb[id].stack_ptr = nya_stacks[id];
+#if NYA_CFG_ENABLE_STATS
+    os_ctx.tcb[id].stack_size = stack_size;
+    os_ctx.tcb[id].stack_end = &nya_stacks[id][stack_size - 1];
+#endif /* if NYA_CFG_ENABLE_STATS */
+
+    nya_scheduler_push_priority(id,
+                                priority);
+}
+
+/* ------------------------------------------------------------------------------ */
+/* Global Declarations */
+/* ------------------------------------------------------------------------------ */
+
+void nya_scheduler_pop_priority(nya_u8_t priority)
 {
     /* if (os_ctx.prioq[priority].count == 0) nya_panic(); ? */
 
@@ -159,8 +162,8 @@ static void _pop_priority(nya_u8_t priority)
     }
 }
 
-static void _push_priority(nya_size_t id,
-                           nya_u8_t priority)
+void nya_scheduler_push_priority(nya_size_t id,
+                                 nya_u8_t priority)
 {
     if (os_ctx.prioq[priority].count == 0)
     {
@@ -182,27 +185,7 @@ static void _push_priority(nya_size_t id,
     os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] |= os_ctx.prio_mask_lkp[priority];
 }
 
-static void _init_tcb(nya_size_t id,
-                      nya_u8_t priority,
-                      nya_stack_t stack_size,
-                      nya_task_func_t entry_func)
-{
-    os_ctx.tcb[id].priority = priority;
-    os_ctx.tcb[id].stack_ptr = nya_stacks[id];
-#if NYA_CFG_ENABLE_STATS
-    os_ctx.tcb[id].stack_size = stack_size;
-    os_ctx.tcb[id].stack_end = &nya_stacks[id][stack_size - 1];
-#endif /* if NYA_CFG_ENABLE_STATS */
-
-    _push_priority(id,
-                   priority);
-}
-
-/* ------------------------------------------------------------------------------ */
-/* Global Declarations */
-/* ------------------------------------------------------------------------------ */
-
-void nya_task_switch(void)
+void nya_scheduler_switch(void)
 {
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
@@ -219,26 +202,6 @@ void nya_task_switch(void)
             os_ctx.next_task = os_ctx.prioq[highest_priority].first;
 
             NYA_CTX_SWITCH();
-        }
-    }
-
-    NYA_EXIT_CRITICAL();
-}
-
-void nya_inc_systick(void)
-{
-    NYA_DECLARE_CRITICAL();
-    NYA_ENTER_CRITICAL();
-
-    for (nya_size_t id = 0; id < NYA_CFG_TASK_CNT; id++)
-    {
-        if (os_ctx.tcb[id].delay)
-        {
-            if (--os_ctx.tcb[id].delay == 0)
-            {
-                _push_priority(id,
-                               os_ctx.tcb[id].priority);
-            }
         }
     }
 
@@ -281,28 +244,15 @@ void nya_exit_isr(void)
     NYA_EXIT_CRITICAL();
 }
 
-void nya_sleep(nya_size_t ticks)
+void nya_init()
 {
-    NYA_DECLARE_CRITICAL();
-    NYA_ENTER_CRITICAL();
-
-    os_ctx.curr_task->delay = ticks;
-    _pop_priority(os_ctx.curr_task->priority);
-
-    NYA_EXIT_CRITICAL();
-
-    nya_task_switch();
-}
-
-void nya_sys_init()
-{
-#define NYA_TASK(_priority,        \
-                 _stack_size,      \
-                 _name,            \
-                 _entry_func)      \
-    _init_tcb(NYA_TASK_ID_##_name, \
-              _priority,           \
-              _stack_size,         \
+#define NYA_TASK(_priority,                           \
+                 _stack_size,                         \
+                 _name,                               \
+                 _entry_func)                         \
+    _init_tcb(NYA_TASK_ID_##_name,                    \
+              _priority,                              \
+              NYA_PORT_BYTES_TO_SECTORS(_stack_size), \
               _entry_func);
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK

@@ -50,6 +50,8 @@ extern "C" {
 typedef enum
 {
     NYA_TASK_RUNNING,
+    NYA_TASK_PREEMPTED,
+    NYA_TASK_WAITING,
 } nya_task_state_t;
 
 /**
@@ -117,8 +119,26 @@ extern nya_sys_ctx_t os_ctx;
 /* Global Prototypes */
 /* ------------------------------------------------------------------------------ */
 
-void nya_task_switch(void);
-void nya_inc_systick(void);
+/**
+ * @brief   Pops a priority queue.
+ * @note    Doesn't support priority boosting, yet.
+ *          TODO: add temp priority field to tcbs
+ * @note    Always call this from within a critical section.
+ */
+void nya_scheduler_pop_priority(nya_u8_t priority);
+
+/**
+ * @brief   Pushes a task to a priority queue.
+ * @note    Doesn't support priority boosting, yet.
+ *          TODO: add temp priority field to tcbs
+ * @note    Always call this from within a critical section.
+ */
+void nya_scheduler_push_priority(nya_size_t id,
+                             nya_u8_t priority);
+
+void nya_scheduler_switch(void);
+
+void nya_time_systick(void);
 
 /* ------------------------------------------------------------------------------ */
 /* */

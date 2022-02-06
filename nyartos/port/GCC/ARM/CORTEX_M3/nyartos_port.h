@@ -56,6 +56,8 @@ typedef nya_u32_t                nya_reg_t;
 typedef nya_u32_t                nya_size_t;
 typedef nya_u32_t                nya_stack_t;
 
+#define NYA_PORT_BYTES_TO_SECTORS(_bytes)    (_bytes >> 2)
+
 /* ------------------------------------------------------------------------------ */
 /* Critical Section */
 /* ------------------------------------------------------------------------------ */

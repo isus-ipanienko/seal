@@ -23,51 +23,18 @@
  * SOFTWARE.
  */
 
-#ifndef NYA_TASK_CONFIG_H
-#define NYA_TASK_CONFIG_H
+/* ------------------------------------------------------------------------------ */
+/* Includes */
+/* ------------------------------------------------------------------------------ */
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* ifdef __cplusplus */
+#include "nyartos.h"
 
-typedef void (*nya_task_func_t)(void *);
+/* ------------------------------------------------------------------------------ */
+/* Task Functions */
+/* ------------------------------------------------------------------------------ */
 
-/* *INDENT-OFF* */
-
-/*
-    NYA_TASK(_priority,
-             _stack_size,
-             _name, 
-             _entry_func)
-*/
-#define NYA_TASK_DEFINITIONS              \
-    NYA_TASK(0, 512, LED, led_entry)      \
-    NYA_TASK(0, 512, PRINT, print_entry)  \
-    NYA_TASK(1, 512, IDLE, idle_entry)
-
-#define NYA_TASK(_priority,        \
-                 _stack_size,      \
-                 _name,            \
-                 _entry_func)      \
-    void _entry_func(void *);
-    NYA_TASK_DEFINITIONS
-#undef NYA_TASK
-
-typedef enum
+void idle_entry(void *param)
 {
-#define NYA_TASK(_priority,   \
-                 _stack_size, \
-                 _name,       \
-                 _entry_func) \
-    NYA_TASK_ID_##_name,
-    NYA_TASK_DEFINITIONS
-#undef NYA_TASK
-} nya_task_id_t;
-
-/* *INDENT-ON* */
-
-#ifdef __cplusplus
+    while (1)
+    {}
 }
-#endif /* ifdef __cplusplus */
-
-#endif /* ifndef NYA_TASK_CONFIG_H */

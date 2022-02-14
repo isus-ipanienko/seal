@@ -40,12 +40,12 @@ void nya_time_systick(void)
 
     for (nya_size_t id = 0; id < NYA_CFG_TASK_CNT; id++)
     {
-        if (os_ctx.tcb[id].delay)
+        if (os_ctx.tcb_l[id].delay)
         {
-            if (--os_ctx.tcb[id].delay == 0)
+            if (--os_ctx.tcb_l[id].delay == 0)
             {
-                nya_scheduler_push_priority(id,
-                                            os_ctx.tcb[id].priority);
+                nya_priority_push(id,
+                                  os_ctx.tcb_l[id].base_prio);
             }
         }
     }
@@ -63,7 +63,7 @@ void nya_sleep(nya_size_t ticks)
     NYA_ENTER_CRITICAL();
 
     os_ctx.curr_task->delay = ticks;
-    nya_scheduler_pop_priority(os_ctx.curr_task->priority);
+    nya_priority_pop(os_ctx.curr_task->base_prio);
 
     NYA_EXIT_CRITICAL();
 

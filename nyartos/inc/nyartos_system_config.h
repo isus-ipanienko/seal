@@ -31,24 +31,20 @@ extern "C" {
 #endif /* ifdef __cplusplus */
 
 /* ------------------------------------------------------------------------------ */
-/* Stack Settings */
-/* ------------------------------------------------------------------------------ */
-
-#define NYA_CFG_STACK_CANARY_SECTORS    0U
-
-/* ------------------------------------------------------------------------------ */
-/* Task Settings */
+/* Feature Settings */
 /* ------------------------------------------------------------------------------ */
 
 #define NYA_CFG_ENABLE_STATS             0U
 #define NYA_CFG_ENABLE_MESSAGE_QUEUES    0U
+#define NYA_CFG_ENABLE_MUTEXES           0U
 
 /* ------------------------------------------------------------------------------ */
-/* Tasks */
+/* Memory Allocation */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_CFG_PRIORITY_LEVELS    2U /**< max: 64 */
-#define NYA_CFG_TASK_CNT           4U /**< max: nya_size_t max value */
+#define NYA_CFG_PRIORITY_LEVELS     2U /**< max: 64 */
+#define NYA_CFG_TASK_CNT            4U /**< max: nya_size_t max value */
+#define NYA_CFG_KERNEL_EVENT_CNT    4U
 
 /* ------------------------------------------------------------------------------ */
 /* Config Asserts */

@@ -47,6 +47,21 @@ nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
     return stack_ptr;
 }
 
+void nya_port_startup(void)
+{
+    __asm volatile
+    (
+        "cpsid i                  \n"  /* disable interrupts */
+        "                         \n"
+        "                         \n"
+        "                         \n"
+        "cpsie i                  \n"  /* enable interrupts */
+        :
+        :
+        :
+    );
+}
+
 /* ------------------------------------------------------------------------------ */
 /* Context Switching */
 /* ------------------------------------------------------------------------------ */

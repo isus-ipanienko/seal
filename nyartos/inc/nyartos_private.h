@@ -54,6 +54,21 @@ typedef enum
     NYA_TASK_WAITING,
 } nya_task_state_t;
 
+typedef enum
+{
+    NYA_MUTEX_T,
+    NYA_MSGQ_T,
+} nya_event_type_t;
+
+/**
+ * @brief Event type.
+ */
+typedef struct
+{
+    nya_event_type_t type;
+    struct nya_tcb_t *holder;
+} nya_event_t;
+
 /**
  * @brief Task control block type.
  */
@@ -61,12 +76,18 @@ typedef struct nya_tcb_t
 {
     nya_stack_t *stack_ptr;
 
-    nya_u8_t priority;              /**< Base priority */
-    struct nya_tcb_t *next_in_prio; /**< Required by priority system */
-    struct nya_tcb_t *prev_in_prio; /**< Required for priority switching */
-
     nya_size_t delay;
     nya_task_state_t state;
+
+    nya_u8_t base_prio;               /**< Base priority */
+    struct nya_tcb_t *next_in_prioq;  /**< Next task in priority queue */
+    struct nya_tcb_t *prev_in_prioq;  /**< Previous task in priority queue */
+
+    nya_u8_t high_prio;               /**< Highest inherited priority */
+    struct nya_tcb_t *next_in_waitq;  /**< Next task in waiting queue */
+    struct nya_tcb_t *prev_in_waitq;  /**< Previous task in waiting queue */
+    nya_event_t *wait_event;          /**< The event that this task is waiting for */
+    nya_event_type_t wait_event_type; /**< Type of the event that this task is waiting for */
 
 #if NYA_CFG_ENABLE_MESSAGE_QUEUES
     nya_msgq_t message_queue;
@@ -75,7 +96,7 @@ typedef struct nya_tcb_t
 #if NYA_CFG_ENABLE_STATS
     nya_stack_t *stack_end;
     nya_size_t stack_size;
-#endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
+#endif /* if NYA_CFG_ENABLE_STATS */
 } nya_tcb_t;
 
 /**
@@ -97,8 +118,9 @@ typedef struct
     nya_tcb_t *curr_task;
     nya_tcb_t *next_task;
 
-    nya_tcb_t tcb[NYA_CFG_TASK_CNT];
-    nya_prioq_t prioq[NYA_CFG_PRIORITY_LEVELS];
+    nya_tcb_t tcb_l[NYA_CFG_TASK_CNT];
+    nya_event_t event_l[NYA_CFG_KERNEL_EVENT_CNT];
+    nya_prioq_t prioq_l[NYA_CFG_PRIORITY_LEVELS];
     nya_u8_t prio_grp_rdy[8];
     nya_u8_t prio_grp_cluster_rdy;
 
@@ -125,7 +147,7 @@ extern nya_sys_ctx_t os_ctx;
  *          TODO: add temp priority field to tcbs
  * @note    Always call this from within a critical section.
  */
-void nya_scheduler_pop_priority(nya_u8_t priority);
+void nya_priority_pop(nya_u8_t priority);
 
 /**
  * @brief   Pushes a task to a priority queue.
@@ -133,8 +155,8 @@ void nya_scheduler_pop_priority(nya_u8_t priority);
  *          TODO: add temp priority field to tcbs
  * @note    Always call this from within a critical section.
  */
-void nya_scheduler_push_priority(nya_size_t id,
-                                 nya_u8_t priority);
+void nya_priority_push(nya_size_t id,
+                       nya_u8_t priority);
 
 void nya_scheduler_switch(void);
 
@@ -142,6 +164,8 @@ void nya_time_systick(void);
 
 nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
                                  nya_stack_t *stack_ptr);
+
+void nya_port_startup(void);
 
 /* ------------------------------------------------------------------------------ */
 /* */

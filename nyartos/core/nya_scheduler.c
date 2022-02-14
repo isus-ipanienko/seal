@@ -60,7 +60,7 @@ static nya_stack_t * nya_stacks[] =
 /* System Context */
 /* ------------------------------------------------------------------------------ */
 
-nya_sys_ctx_t os_ctx =
+nya_os_ctx_t os_ctx =
 {
     .resolve_prio_lkp =
     {
@@ -145,11 +145,8 @@ static void _init_tcb(nya_size_t id,
 /* Global Declarations */
 /* ------------------------------------------------------------------------------ */
 
-void nya_scheduler_switch(void)
+nya_bool_t nya_scheduler_set_next_task(void)
 {
-    NYA_DECLARE_CRITICAL();
-    NYA_ENTER_CRITICAL();
-
     if (os_ctx.isr_nesting_cnt == 0)
     {
         nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_cluster_rdy];
@@ -161,8 +158,21 @@ void nya_scheduler_switch(void)
         {
             os_ctx.next_task = os_ctx.prioq_l[highest_priority].first;
 
-            NYA_CTX_SWITCH();
+            return NYA_TRUE;
         }
+    }
+
+    return NYA_FALSE;
+}
+
+void nya_scheduler_switch(void)
+{
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
+
+    if (nya_scheduler_set_next_task())
+    {
+        NYA_CTX_SWITCH();
     }
 
     NYA_EXIT_CRITICAL();
@@ -186,19 +196,9 @@ void nya_exit_isr(void)
     /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 0) panic(); ? */
     os_ctx.isr_nesting_cnt--;
 
-    if (os_ctx.isr_nesting_cnt == 0)
+    if (nya_scheduler_set_next_task())
     {
-        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_cluster_rdy];
-
-        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_rdy[highest_priority]] +
-                           (highest_priority * 8);
-
-        if (os_ctx.prioq_l[highest_priority].first != os_ctx.curr_task)
-        {
-            os_ctx.next_task = os_ctx.prioq_l[highest_priority].first;
-
-            NYA_CTX_SWITCH_FROM_ISR();
-        }
+        NYA_CTX_SWITCH_FROM_ISR();
     }
 
     NYA_EXIT_CRITICAL();
@@ -217,5 +217,6 @@ void nya_init()
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 
+    nya_scheduler_set_next_task();
     nya_port_startup();
 }

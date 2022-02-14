@@ -47,18 +47,50 @@ nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
     return stack_ptr;
 }
 
+static nya_stack_t nya_exception_stack[256];  /* allocate 1KB as exception stack */
+
 void nya_port_startup(void)
 {
     __asm volatile
     (
-        "cpsid i                  \n"  /* disable interrupts */
-        "                         \n"
-        "                         \n"
-        "                         \n"
-        "cpsie i                  \n"  /* enable interrupts */
+        "cpsid i \n"  /* disable interrupts */
         :
         :
+        : "memory"
+    );
+
+    os_ctx.is_running = NYA_TRUE;
+    os_ctx.curr_task = os_ctx.next_task;
+    NYA_PORT_NVIC_PENDSV_PRIO_REG = NYA_PORT_NVIC_PENDSV_PRIO_VAL;
+    nya_stack_t *exception_stack;
+
+    exception_stack = (nya_stack_t *)((nya_stack_t)nya_exception_stack & 0xfffffff8U);  /* align to 8 bytes */
+
+    __asm volatile
+    (
+        "mov r0, %0                   \n"  /* load exception stack as msp */
+        "ldr r1, [r0]                 \n"
+        "msr msp, r1                  \n"
+        "                             \n"
+        "mov r2, %1                   \n"  /* load &nya_sys_ctx.curr_task */
+        "ldr r3, [r2]                 \n"  /* get address of next tcb */
+        "ldr r1, [r3]                 \n"  /* load new process stack pointer */
+        "msr psp, r1                  \n"  /* load it to psp */
+        "                             \n"
+        "mrs r0, control              \n"  /* set psp as the current stack pointer */
+        "orr r0, r0, #2               \n"
+        "msr control, r0              \n"
+        "isb                          \n"
+        "                             \n"
+        "ldmia sp!, {r4-r11}          \n"  /* restore the remaining registers */
+        "ldmia sp!, {r0-r3, r12, r14} \n"
+        "ldmia sp!, {r1, r2}          \n"
+        "                             \n"
+        "cpsie i                      \n"  /* enable interrupts */
+        "bx r1                          "  /* start task */
         :
+        : "r" (exception_stack), "r" (os_ctx.curr_task)
+        : "memory"
     );
 }
 
@@ -68,7 +100,7 @@ void nya_port_startup(void)
 
 void nya_port_context_switch()
 {
-    *NYA_PORT_NVIC_INT_CTRL_REG = NYA_PORT_NVIC_PENDSVSET_BIT;
+    NYA_PORT_NVIC_INT_CTRL_REG = NYA_PORT_NVIC_PENDSVSET_BIT;
     __asm volatile
     (
         "dsb \n" \
@@ -146,7 +178,7 @@ void nya_port_pendsv_handler(void)
         "cpsie i                  \n"
         "                         \n"
         "mrs r0, psp              \n"
-        "stmdb r0!, {r4-r11}      \n"  /* push registers */
+        "stmdb r0!, {r4-r11, r14} \n"  /* push registers */
         "                         \n"
         "mov r1, %1               \n"  /* load &nya_sys_ctx.curr_task */
         "ldr r2, [r1]             \n"  /* get address of current tcb */
@@ -156,7 +188,7 @@ void nya_port_pendsv_handler(void)
         "str r3, [r1]             \n"  /* store adress of nya_sys_ctx.next_task to nya_sys_ctx.curr_task */
         "                         \n"
         "ldr r0, [r3]             \n"  /* load new process stack pointer */
-        "ldmia r0!, {r4-r11}      \n"  /* pop registers */
+        "ldmia r0!, {r4-r11, r14} \n"  /* pop registers */
         "msr psp, r0              \n"  /* load new process stack pointer */
         "                         \n"
         "cpsid i                  \n"  /* enable interrupts */

@@ -90,7 +90,7 @@ typedef struct nya_tcb_t
     nya_event_type_t wait_event_type; /**< Type of the event that this task is waiting for */
 
 #if NYA_CFG_ENABLE_MESSAGE_QUEUES
-    nya_msgq_t message_queue;
+    nya_msgq_t msgq;
 #endif /* if NYA_CFG_ENABLE_MESSAGE_QUEUES */
 
 #if NYA_CFG_ENABLE_STATS
@@ -118,6 +118,8 @@ typedef struct
     nya_tcb_t *curr_task;
     nya_tcb_t *next_task;
 
+    nya_bool_t is_running;
+
     nya_tcb_t tcb_l[NYA_CFG_TASK_CNT];
     nya_event_t event_l[NYA_CFG_KERNEL_EVENT_CNT];
     nya_prioq_t prioq_l[NYA_CFG_PRIORITY_LEVELS];
@@ -129,13 +131,13 @@ typedef struct
     const nya_u8_t resolve_prio_lkp[256];
     const nya_u8_t prio_indx_lkp[64];
     const nya_u8_t prio_mask_lkp[64];
-} nya_sys_ctx_t;
+} nya_os_ctx_t;
 
 /* ------------------------------------------------------------------------------ */
 /* Globals */
 /* ------------------------------------------------------------------------------ */
 
-extern nya_sys_ctx_t os_ctx;
+extern nya_os_ctx_t os_ctx;
 
 /* ------------------------------------------------------------------------------ */
 /* Global Prototypes */
@@ -158,6 +160,7 @@ void nya_priority_pop(nya_u8_t priority);
 void nya_priority_push(nya_size_t id,
                        nya_u8_t priority);
 
+nya_bool_t nya_scheduler_set_next_task(void);
 void nya_scheduler_switch(void);
 
 void nya_time_systick(void);

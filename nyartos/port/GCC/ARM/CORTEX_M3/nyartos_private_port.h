@@ -34,8 +34,10 @@ extern "C" {
 /* CPU Registers */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_PORT_NVIC_INT_CTRL_REG     ((volatile nya_reg_t *)0xe000ed04)
-#define NYA_PORT_NVIC_PENDSVSET_BIT    (1UL << 28UL)
+#define NYA_PORT_NVIC_PENDSV_PRIO_REG    *((volatile nya_reg_t *)0xe000ed22)
+#define NYA_PORT_NVIC_PENDSV_PRIO_VAL    (0xff)
+#define NYA_PORT_NVIC_INT_CTRL_REG       *((volatile nya_reg_t *)0xe000ed04)
+#define NYA_PORT_NVIC_PENDSVSET_BIT      (1UL << 28UL)
 
 /* ------------------------------------------------------------------------------ */
 /* Context Switching */

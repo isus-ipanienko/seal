@@ -131,7 +131,8 @@ static void _init_tcb(nya_size_t id,
 {
     os_ctx.tcb_l[id].base_prio = base_prio;
     os_ctx.tcb_l[id].stack_ptr = nya_port_init_stack(entry_func,
-                                                     nya_stacks[id]);
+                                                     nya_stacks[id],
+                                                     stack_size);
 #if NYA_CFG_ENABLE_STATS
     os_ctx.tcb_l[id].stack_size = stack_size;
     os_ctx.tcb_l[id].stack_end = &nya_stacks[id][stack_size - 1];

@@ -41,6 +41,12 @@ extern "C" {
 #include "nyartos_private_port.h"
 
 /* ------------------------------------------------------------------------------ */
+/* Helper Macros */
+/* ------------------------------------------------------------------------------ */
+
+#define NYA_ARRAY_SIZE(_array)    (sizeof(_array) / sizeof(_array[0]))
+
+/* ------------------------------------------------------------------------------ */
 /* Types */
 /* ------------------------------------------------------------------------------ */
 
@@ -166,7 +172,8 @@ void nya_scheduler_switch(void);
 void nya_time_systick(void);
 
 nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
-                                 nya_stack_t *stack_ptr);
+                                 nya_stack_t *stack_ptr,
+                                 nya_stack_t stack_size);
 
 void nya_port_startup(void);
 

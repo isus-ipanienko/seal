@@ -121,9 +121,6 @@ typedef struct
  */
 typedef struct
 {
-    nya_tcb_t *curr_task;
-    nya_tcb_t *next_task;
-
     nya_bool_t is_running;
 
     nya_tcb_t tcb_l[NYA_CFG_TASK_CNT];
@@ -143,6 +140,8 @@ typedef struct
 /* Globals */
 /* ------------------------------------------------------------------------------ */
 
+extern nya_tcb_t *volatile nya_curr_task;
+extern nya_tcb_t *volatile nya_next_task;
 extern nya_os_ctx_t os_ctx;
 
 /* ------------------------------------------------------------------------------ */

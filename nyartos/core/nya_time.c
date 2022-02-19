@@ -62,8 +62,8 @@ void nya_sleep(nya_size_t ticks)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    os_ctx.curr_task->delay = ticks;
-    nya_priority_pop(os_ctx.curr_task->base_prio);
+    nya_curr_task->delay = ticks;
+    nya_priority_pop(nya_curr_task->base_prio);
 
     NYA_EXIT_CRITICAL();
 

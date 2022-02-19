@@ -60,6 +60,8 @@ static nya_stack_t * nya_stacks[] =
 /* System Context */
 /* ------------------------------------------------------------------------------ */
 
+nya_tcb_t *volatile nya_curr_task = NYA_NULL;
+nya_tcb_t *volatile nya_next_task = NYA_NULL;
 nya_os_ctx_t os_ctx =
 {
     .resolve_prio_lkp =
@@ -155,9 +157,9 @@ nya_bool_t nya_scheduler_set_next_task(void)
         highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_rdy[highest_priority]] +
                            (highest_priority * 8);
 
-        if (os_ctx.prioq_l[highest_priority].first != os_ctx.curr_task)
+        if (os_ctx.prioq_l[highest_priority].first != nya_next_task)
         {
-            os_ctx.next_task = os_ctx.prioq_l[highest_priority].first;
+            nya_next_task = os_ctx.prioq_l[highest_priority].first;
 
             return NYA_TRUE;
         }

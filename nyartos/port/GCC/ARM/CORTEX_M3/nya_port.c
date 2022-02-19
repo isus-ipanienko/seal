@@ -44,26 +44,32 @@ nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
                                  nya_stack_t *stack_ptr,
                                  nya_stack_t stack_size)
 {
-    stack_ptr = &stack_ptr[stack_size];
-    stack_ptr = (nya_stack_t *)((nya_stack_t)(stack_ptr) & 0xfffffff8U); /* align to 8 bytes */
-    *(--stack_ptr) = (nya_stack_t)0x01000000UL;                          /* xPSR : set thumb state */
-    *(--stack_ptr) = (nya_stack_t)entry_func & (nya_stack_t)0xfffffffe;  /* task entry */
-    *(--stack_ptr) = (nya_stack_t)task_exit & (nya_stack_t)0xfffffffe;   /* LR */
-    *(--stack_ptr) = (nya_stack_t)0x0000000CUL;                          /* R12 */
-    *(--stack_ptr) = (nya_stack_t)0x00000003UL;                          /* R3 */
-    *(--stack_ptr) = (nya_stack_t)0x00000002UL;                          /* R2 */
-    *(--stack_ptr) = (nya_stack_t)0x00000001UL;                          /* R1 */
-    *(--stack_ptr) = (nya_stack_t)0x00000000UL;                          /* R0 TODO: add task param */
-    *(--stack_ptr) = (nya_stack_t)0x0000000BUL;                          /* R11 */
-    *(--stack_ptr) = (nya_stack_t)0x0000000AUL;                          /* R10 */
-    *(--stack_ptr) = (nya_stack_t)0x00000009UL;                          /* R9 */
-    *(--stack_ptr) = (nya_stack_t)0x00000008UL;                          /* R8 */
-    *(--stack_ptr) = (nya_stack_t)0x00000007UL;                          /* R7 */
-    *(--stack_ptr) = (nya_stack_t)0x00000006UL;                          /* R6 */
-    *(--stack_ptr) = (nya_stack_t)0x00000005UL;                          /* R5 */
-    *(--stack_ptr) = (nya_stack_t)0x00000004UL;                          /* R4 */
+    nya_stack_t *ptr = &stack_ptr[stack_size];
+    ptr = (nya_stack_t *)((nya_stack_t)(ptr) & 0xfffffff8U);       /* align to 8 bytes */
+    *(--ptr) = (nya_stack_t)0x01000000UL;                          /* xPSR : set thumb state */
+    *(--ptr) = (nya_stack_t)entry_func & (nya_stack_t)0xfffffffe;  /* task entry */
+    *(--ptr) = (nya_stack_t)task_exit & (nya_stack_t)0xfffffffe;   /* LR */
+    *(--ptr) = (nya_stack_t)0x0000000CUL;                          /* R12 */
+    *(--ptr) = (nya_stack_t)0x00000003UL;                          /* R3 */
+    *(--ptr) = (nya_stack_t)0x00000002UL;                          /* R2 */
+    *(--ptr) = (nya_stack_t)0x00000001UL;                          /* R1 */
+    *(--ptr) = (nya_stack_t)0x8badf00dUL;                          /* R0 TODO: add task param */
+    *(--ptr) = (nya_stack_t)0x0000000BUL;                          /* R11 */
+    *(--ptr) = (nya_stack_t)0x0000000AUL;                          /* R10 */
+    *(--ptr) = (nya_stack_t)0x00000009UL;                          /* R9 */
+    *(--ptr) = (nya_stack_t)0x00000008UL;                          /* R8 */
+    *(--ptr) = (nya_stack_t)0x00000007UL;                          /* R7 */
+    *(--ptr) = (nya_stack_t)0x00000006UL;                          /* R6 */
+    *(--ptr) = (nya_stack_t)0x00000005UL;                          /* R5 */
+    *(--ptr) = (nya_stack_t)0x00000004UL;                          /* R4 */
 
-    return stack_ptr;
+    nya_stack_t *ret = ptr;
+    while (ptr-- != stack_ptr)
+    {
+        *ptr = 0xdeadbeef;
+    }
+
+    return ret;
 }
 
 static nya_stack_t nya_exception_stack[256];  /* allocate 1KB as exception stack */
@@ -72,7 +78,8 @@ void nya_port_startup(void)
 {
     __asm volatile
     (
-        "cpsid i \n"  /* disable interrupts */
+        "cpsid i  \n"  /* disable interrupts */
+        ".align 4 \n"
         :
         :
         : "memory"
@@ -108,66 +115,9 @@ void nya_port_startup(void)
         "                             \n"
         "cpsie i                      \n"  /* enable interrupts */
         "bx r1                        \n"  /* start task */
+        ".align 4                     \n"
         :
         : "r" (exception_stack), "r" (nya_curr_task)
-        : "memory"
-    );
-}
-
-/* ------------------------------------------------------------------------------ */
-/* Context Switching */
-/* ------------------------------------------------------------------------------ */
-
-void nya_port_context_switch()
-{
-    NYA_PORT_NVIC_INT_CTRL_REG = NYA_PORT_NVIC_PENDSVSET_BIT;
-    __asm volatile
-    (
-        "dsb \n" \
-        "isb \n" \
-        :
-        :
-        : "memory"
-    );
-}
-
-/* ------------------------------------------------------------------------------ */
-/* Critical Section */
-/* ------------------------------------------------------------------------------ */
-
-nya_reg_t nya_port_enter_critical()
-{
-    nya_reg_t new_basepri;
-    nya_reg_t old_basepri;
-
-    __asm volatile
-    (
-        "cpsid i            \n"
-        "mrs %1, basepri    \n"
-        "mov %0, %2         \n"
-        "msr basepri, %0    \n"
-        "dsb                \n"
-        "isb                \n"
-        "cpsie i            \n"
-        : "=r" (new_basepri), "=r" (old_basepri)
-        : "i" (NYA_PORT_BASEPRI_VAL)
-        : "memory"
-    );
-
-    return old_basepri;
-}
-
-void nya_port_exit_critical(nya_reg_t restored_basepri)
-{
-    __asm volatile
-    (
-        "cpsid i            \n"
-        "msr basepri, %0    \n"
-        "dsb                \n"
-        "isb                \n"
-        "cpsie i            \n"
-        :
-        : "r" (restored_basepri)
         : "memory"
     );
 }
@@ -183,43 +133,4 @@ void nya_port_systick_handler(void)
     nya_time_systick();
 
     nya_exit_isr();
-}
-
-void nya_port_pendsv_handler(void)
-{
-    __asm volatile
-    (
-        "cpsid i                  \n"  /* disable interrupts */
-        "mov r0, %0               \n"
-        "msr basepri, r0          \n"
-        "dsb                      \n"
-        "isb                      \n"
-        "cpsie i                  \n"
-        "                         \n"
-        "mrs r0, psp              \n"  /* load old process stack pointer */
-        "stmdb r0!, {r4-r11}      \n"  /* push registers */
-        "                         \n"
-        "ldr r1, =nya_curr_task   \n"  /* get address of current taskptr */
-        "ldr r2, [r1]             \n"  /* get address of current task and stack pointer */
-        "str r0, [r2]             \n"  /* store stack pointer to current task */
-        "                         \n"
-        "ldr r3, =nya_next_task   \n"  /* get address of next taskptr */
-        "ldr r2, [r3]             \n"  /* get address of next task and stack pointer */
-        "str r2, [r1]             \n"  /* set next task as current task */
-        "                         \n"
-        "ldr r0, [r2]             \n"  /* get value of next stack pointer */
-        "ldmia r0!, {r4-r11}      \n"  /* pop registers */
-        "msr psp, r0              \n"  /* load new process stack pointer */
-        "                         \n"
-        "cpsid i                  \n"  /* enable interrupts */
-        "mov r0, #0               \n"
-        "msr basepri, r0          \n"
-        "dsb                      \n"
-        "isb                      \n"
-        "cpsie i                  \n"
-        "bx lr                    \n"
-        :
-        : "i" (NYA_PORT_BASEPRI_VAL)
-        : "memory"
-    );
 }

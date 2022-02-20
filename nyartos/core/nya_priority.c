@@ -35,15 +35,20 @@
 
 void nya_priority_pop(nya_u8_t priority)
 {
-    /* if (os_ctx.prioq_l[priority].count == 0) nya_panic(); ? */
+    if (os_ctx.prioq_l[priority].count == 0)
+    {
+        nya_panic();
+    }
 
     if (--os_ctx.prioq_l[priority].count == 0)
     {
         os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] &= ~os_ctx.prio_mask_lkp[priority];
+
         if (os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[priority]] == 0)
         {
             os_ctx.prio_grp_cluster_rdy &= ~os_ctx.prio_mask_lkp[os_ctx.prio_indx_lkp[priority]];
         }
+
         os_ctx.prioq_l[priority].first = NYA_NULL;
         os_ctx.prioq_l[priority].last = NYA_NULL;
     }

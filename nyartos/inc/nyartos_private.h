@@ -110,8 +110,8 @@ typedef struct nya_tcb_t
  */
 typedef struct
 {
-    nya_tcb_t *first;
-    nya_tcb_t *last;
+    nya_tcb_t *first; /**< First task in this priority. */
+    nya_tcb_t *last;  /**< Last task in this priority. */
     nya_size_t count; /**< Number of waiting tasks in this priority. */
     nya_u8_t mode;    /**< mode = 1 -> FIFO */
 } nya_prioq_t;
@@ -126,6 +126,8 @@ typedef struct
     nya_tcb_t tcb_l[NYA_CFG_TASK_CNT];
     nya_event_t event_l[NYA_CFG_KERNEL_EVENT_CNT];
     nya_prioq_t prioq_l[NYA_CFG_PRIORITY_LEVELS];
+
+    /* TODO: add CLZ priority resolving if no more than 32 priorities exist */
     nya_u8_t prio_grp_rdy[8];
     nya_u8_t prio_grp_cluster_rdy;
 
@@ -149,17 +151,20 @@ extern nya_os_ctx_t os_ctx;
 /* ------------------------------------------------------------------------------ */
 
 /**
+ * @brief This function is called whenever something really bad happens.
+ */
+void nya_panic(void);
+
+/**
  * @brief   Pops a priority queue.
- * @note    Doesn't support priority boosting, yet.
- *          TODO: add temp priority field to tcbs
+ * @note    Doesn't support priority inheritance, yet.
  * @note    Always call this from within a critical section.
  */
 void nya_priority_pop(nya_u8_t priority);
 
 /**
  * @brief   Pushes a task to a priority queue.
- * @note    Doesn't support priority boosting, yet.
- *          TODO: add temp priority field to tcbs
+ * @note    Doesn't support priority inheritance, yet.
  * @note    Always call this from within a critical section.
  */
 void nya_priority_push(nya_size_t id,
@@ -167,13 +172,13 @@ void nya_priority_push(nya_size_t id,
 
 /**
  * @brief Sets @c nya_next_task to point at the first ready task with the highest priority.
- * 
+ *
  * @return NYA_TRUE - a context switch is needed; NYA_FALSE - no context switch is needed
  */
 nya_bool_t nya_scheduler_set_next_task(void);
 
 /**
- * @brief    Triggers a context switch. 
+ * @brief    Triggers a context switch.
  * @warning  Don't call it from an ISR, @c nya_exit_isr() handles context switching from ISRs.
  */
 void nya_scheduler_switch(void);
@@ -188,7 +193,7 @@ void nya_time_systick(void);
  * @brief   Initializes a task's stack.
  * @note    It needs to be implemented in @c nya_port.c or @c nya_port.s
  * @note    If the stack needs to be aligned, it should be handled here.
- * 
+ *
  * @param[in] entry_func - pointer to the task's entry function
  * @param[in] stack_ptr - pointer to the beginning of the task's stack
  * @param[in] stack_size - size of the stack

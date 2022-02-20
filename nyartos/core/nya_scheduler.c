@@ -148,6 +148,16 @@ static void _init_tcb(nya_size_t id,
 /* Global Declarations */
 /* ------------------------------------------------------------------------------ */
 
+/* TODO: find a better home for this function */
+void nya_panic(void)
+{
+    NYA_DISABLE_INTERRUPTS();
+    nya_panic_hook();
+
+    while (1)
+    {}
+}
+
 nya_bool_t nya_scheduler_set_next_task(void)
 {
     if (os_ctx.isr_nesting_cnt == 0)
@@ -187,7 +197,11 @@ void nya_scheduler_switch(void)
 
 void nya_enter_isr(void)
 {
-    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 255) panic(); ? */
+    if (os_ctx.isr_nesting_cnt == 255)
+    {
+        nya_panic();
+    }
+
     os_ctx.isr_nesting_cnt++;
 }
 
@@ -196,7 +210,11 @@ void nya_exit_isr(void)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    /*TODO: if (nya_sys_ctx.isr_nesting_cnt == 0) panic(); ? */
+    if (os_ctx.isr_nesting_cnt == 0)
+    {
+        nya_panic();
+    }
+
     os_ctx.isr_nesting_cnt--;
 
     if (nya_scheduler_set_next_task())
@@ -221,5 +239,6 @@ void nya_init()
 #undef NYA_TASK
 
     nya_scheduler_set_next_task();
+
     nya_port_startup();
 }

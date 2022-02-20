@@ -33,6 +33,11 @@
 /* Task Functions */
 /* ------------------------------------------------------------------------------ */
 
+/**
+ * @brief       This is the system idle task.
+ * @warning     Delaying this task in any way will cause a crash. 
+ *              Nyartos expects it will be ready to run at any time.
+ */
 void idle_entry(void *param)
 {
     NYA_UNUSED(param);

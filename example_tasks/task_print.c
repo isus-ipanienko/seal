@@ -31,6 +31,10 @@ void print_entry(void *param)
 
     while (1)
     {
+        HAL_UART_Transmit(&huart2,
+                          (uint8_t *)"foobar\n",
+                          sizeof("foobar\n") - 1,
+                          100);
         nya_sleep(250);
     }
 }

@@ -56,20 +56,36 @@ typedef nya_u32_t                nya_reg_t;
 typedef nya_u32_t                nya_size_t;
 typedef nya_u32_t                nya_stack_t;
 
+/**
+ * @brief This macro calculates _bytes to an amount of nya_stack_t variables.
+ */
 #define NYA_PORT_BYTES_TO_SECTORS(_bytes)    (_bytes >> 2)
 
 /* ------------------------------------------------------------------------------ */
 /* Critical Section */
 /* ------------------------------------------------------------------------------ */
 
+/**
+ * @brief Call this macro at the entry of each function that has any critical sections.
+ */
 #define NYA_DECLARE_CRITICAL()    nya_reg_t nya_critical = 0;
 
+/**
+ * @brief   Call this macro to enter a critical section. 
+ * @warning If pairs of NYA_ENTER_CRITICAL() and NYA_EXIT_CRITICAL() are not balanced,
+ *          a kernel panic will occur after 256 unbalanced calls.
+ */
 #define NYA_ENTER_CRITICAL()                      \
     do                                            \
     {                                             \
         nya_critical = nya_port_enter_critical(); \
     } while (0)
 
+/**
+ * @brief   Call this macro to exit a critical section. 
+ * @warning If pairs of NYA_ENTER_CRITICAL() and NYA_EXIT_CRITICAL() are not balanced,
+ *          a kernel panic will occur after 256 unbalanced calls.
+ */
 #define NYA_EXIT_CRITICAL()                   \
     do                                        \
     {                                         \
@@ -83,7 +99,20 @@ void nya_port_exit_critical(nya_reg_t new_basepri);
 /* ISR Handlers */
 /* ------------------------------------------------------------------------------ */
 
+/**
+ * @brief SysTick handler used by nyartos.
+ * 
+ * This functions needs to be called each time a systick occurs. It can be either
+ * be called directly as the handler, or it can be called inside another handler.
+ */
 void nya_port_systick_handler(void);
+
+/**
+ * @brief PendSV handler used by nyartos.
+ * 
+ * This functions switches the context of the CPU. It needs to be called directly
+ * as the handler, otherwise it will cause a HardFault.
+ */
 void nya_port_pendsv_handler(void);
 
 /* ------------------------------------------------------------------------------ */

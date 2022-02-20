@@ -41,6 +41,7 @@ extern "C" {
 /* Macros */
 /* ------------------------------------------------------------------------------ */
 
+/*TODO: implement time management macros */
 #define NYA_HOURS_TO_TICKS(_hours)    (_hours)
 #define NYA_MINS_TO_TICKS(_mins)      (_mins)
 #define NYA_SECS_TO_TICKS(_secs)      (_secs)
@@ -79,11 +80,12 @@ void nya_exit_isr(void);
 void nya_init(void);
 
 /**
- * @brief   This functions puts a task to sleep for a specified amount of systicks.
+ * @brief   This function delays a task for a specified amount of systicks.
+ * @note    It's non-blocking.
  * @note    Use NYA_MS_TO_TICKS(), NYA_SECS_TO_TICKS(), NYA_MINS_TO_TICKS() and
  *          NYA_HOURS_TO_TICKS() to convert from units of time to systicks.
  *
- * @param   ticks - How much ticks to sleep the current task.
+ * @param   ticks - Current task will be delayed for this many ticks.
  */
 void nya_sleep(nya_size_t ticks);
 

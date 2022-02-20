@@ -185,7 +185,7 @@ void nya_scheduler_switch(void);
 
 /**
  * @brief   Increments the systick.
- * @note    This function needs to be called from within a critical section.
+ * @note    This function contains a critical section.
  */
 void nya_time_systick(void);
 

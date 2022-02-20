@@ -72,12 +72,16 @@ void nya_scheduler_switch(void)
 
 void nya_enter_isr(void)
 {
+    NYA_DECLARE_CRITICAL();
+    NYA_ENTER_CRITICAL();
+
     if (os_ctx.isr_nesting_cnt == 255)
     {
         nya_panic();
     }
 
     os_ctx.isr_nesting_cnt++;
+    NYA_EXIT_CRITICAL();
 }
 
 void nya_exit_isr(void)

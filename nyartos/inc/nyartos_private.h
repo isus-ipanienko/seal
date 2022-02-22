@@ -161,6 +161,11 @@ extern nya_os_ctx_t os_ctx;
 void nya_panic(void);
 
 /**
+ * @brief This function is called when a task exits.
+ */
+void nya_task_exit(void);
+
+/**
  * @brief   Pops a priority queue.
  * @note    Doesn't support priority inheritance, yet.
  * @note    Always call this from within a critical section.

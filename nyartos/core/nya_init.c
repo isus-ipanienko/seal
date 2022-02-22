@@ -143,7 +143,7 @@ static void _init_tcb(nya_size_t id,
 /* Global Declarations */
 /* ------------------------------------------------------------------------------ */
 
-/* TODO: find a better home for this function */
+/* TODO: find a better home for these functions */
 void nya_panic(void)
 {
     NYA_DISABLE_INTERRUPTS();
@@ -151,6 +151,11 @@ void nya_panic(void)
 
     while (1)
     {}
+}
+
+void nya_task_exit(void)
+{
+    nya_panic();
 }
 
 /* ------------------------------------------------------------------------------ */

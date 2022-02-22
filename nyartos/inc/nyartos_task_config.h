@@ -40,12 +40,19 @@ extern "C" {
 /* Task Definitions */
 /* ------------------------------------------------------------------------------ */
 
-/*
- *  NYA_TASK(_name,
- *           _priority,
- *           _stack_size,
- *           _entry_func,
- *           _entry_func_param)
+/**
+ * @brief   This macro is used to create all structures required by the tasks specified here.
+ * @warning The task with the highest priority should appear last on the list. Else, the
+ *          number of allocated priorities will be incorrect. Alternatively, you may remove
+ *          the definition of @c nya_priority_level_t and define NYA_PRIORITY_LEVEL_CNT yourself.
+ *          #define NYA_PRIORITY_LEVEL_CNT (max_priority + 1)
+ *
+ *  NYA_TASK(_name,             - Name of the task. It's used for inter-task communication. See @c nya_task_id_t.
+ *           _priority,         - Base priority level of the task.
+ *           _stack_size,       - Stack size allocated for the task [in bytes].
+ *                                Note that it will be rounded down to a multiple of sizeof(nya_stack_t).
+ *           _entry_func,       - Name of the entry function.
+ *           _entry_func_param) - Pointer to the entry function parameter.
  */
 #define NYA_TASK_DEFINITIONS \
     NYA_TASK(LED,            \

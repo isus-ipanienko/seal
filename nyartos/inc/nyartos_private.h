@@ -197,11 +197,13 @@ void nya_time_systick(void);
  * @param[in] entry_func - pointer to the task's entry function
  * @param[in] stack_ptr - pointer to the beginning of the task's stack
  * @param[in] stack_size - size of the stack
+ * @param[in] param - task entry function parameter
  * @return nya_stack_t* - pointer of the initialized stack
  */
 nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
                                  nya_stack_t *stack_ptr,
-                                 nya_stack_t stack_size);
+                                 nya_stack_t stack_size,
+                                 void *param);
 
 /**
  * @brief Initializes the system and starts scheduling.

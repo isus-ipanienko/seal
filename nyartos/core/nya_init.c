@@ -43,17 +43,6 @@
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 
-static nya_stack_t * nya_stacks[] =
-{
-#define NYA_TASK(_priority,   \
-                 _stack_size, \
-                 _name,       \
-                 _entry_func) \
-    [NYA_TASK_ID_##_name] = nya_stack_##_name,
-    NYA_TASK_DEFINITIONS
-#undef NYA_TASK
-};
-
 /* *INDENT-ON* */
 
 /* ------------------------------------------------------------------------------ */
@@ -120,6 +109,7 @@ nya_os_ctx_t os_ctx =
 static void _init_tcb(nya_size_t id,
                       nya_u8_t base_prio,
                       nya_stack_t stack_size,
+                      nya_stack_t *stack_base,
                       nya_task_func_t entry_func);
 
 /* ------------------------------------------------------------------------------ */
@@ -129,15 +119,17 @@ static void _init_tcb(nya_size_t id,
 static void _init_tcb(nya_size_t id,
                       nya_u8_t base_prio,
                       nya_stack_t stack_size,
+                      nya_stack_t *stack_base,
                       nya_task_func_t entry_func)
 {
     os_ctx.tcb_l[id].base_prio = base_prio;
     os_ctx.tcb_l[id].stack_ptr = nya_port_init_stack(entry_func,
-                                                     nya_stacks[id],
-                                                     stack_size);
+                                                     stack_base,
+                                                     stack_size,
+                                                     NYA_NULL);
 #if NYA_CFG_ENABLE_STATS
     os_ctx.tcb_l[id].stack_size = stack_size;
-    os_ctx.tcb_l[id].stack_end = &nya_stacks[id][stack_size - 1];
+    os_ctx.tcb_l[id].stack_end = &stack_base[stack_size - 1];
 #endif /* if NYA_CFG_ENABLE_STATS */
 
     nya_priority_push(id,
@@ -171,6 +163,7 @@ void nya_init()
     _init_tcb(NYA_TASK_ID_##_name,                    \
               _priority,                              \
               NYA_PORT_BYTES_TO_SECTORS(_stack_size), \
+              nya_stack_##_name,                      \
               _entry_func);
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK

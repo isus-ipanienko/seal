@@ -34,36 +34,39 @@
 /* ------------------------------------------------------------------------------ */
 
 void task_exit(void);
+
 void task_exit(void)
 {
-    while (1)
-    {}
+    nya_panic();
 }
 
 nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
                                  nya_stack_t *stack_ptr,
-                                 nya_stack_t stack_size)
+                                 nya_stack_t stack_size,
+                                 void *param)
 {
     nya_stack_t *ptr = &stack_ptr[stack_size];
-    ptr = (nya_stack_t *)((nya_stack_t)(ptr) & 0xfffffff8U);       /* align to 8 bytes */
-    *(--ptr) = (nya_stack_t)0x01000000UL;                          /* xPSR : set thumb state */
-    *(--ptr) = (nya_stack_t)entry_func & (nya_stack_t)0xfffffffe;  /* task entry */
-    *(--ptr) = (nya_stack_t)task_exit & (nya_stack_t)0xfffffffe;   /* LR */
-    *(--ptr) = (nya_stack_t)0x0000000CUL;                          /* R12 */
-    *(--ptr) = (nya_stack_t)0x00000003UL;                          /* R3 */
-    *(--ptr) = (nya_stack_t)0x00000002UL;                          /* R2 */
-    *(--ptr) = (nya_stack_t)0x00000001UL;                          /* R1 */
-    *(--ptr) = (nya_stack_t)0x8badf00dUL;                          /* R0 TODO: add task param */
-    *(--ptr) = (nya_stack_t)0x0000000BUL;                          /* R11 */
-    *(--ptr) = (nya_stack_t)0x0000000AUL;                          /* R10 */
-    *(--ptr) = (nya_stack_t)0x00000009UL;                          /* R9 */
-    *(--ptr) = (nya_stack_t)0x00000008UL;                          /* R8 */
-    *(--ptr) = (nya_stack_t)0x00000007UL;                          /* R7 */
-    *(--ptr) = (nya_stack_t)0x00000006UL;                          /* R6 */
-    *(--ptr) = (nya_stack_t)0x00000005UL;                          /* R5 */
-    *(--ptr) = (nya_stack_t)0x00000004UL;                          /* R4 */
+
+    ptr = (nya_stack_t *)((nya_stack_t)(ptr) & 0xfffffff8U);      /* align to 8 bytes */
+    *(--ptr) = (nya_stack_t)0x01000000UL;                         /* xPSR : set thumb state */
+    *(--ptr) = (nya_stack_t)entry_func & (nya_stack_t)0xfffffffe; /* task entry */
+    *(--ptr) = (nya_stack_t)task_exit & (nya_stack_t)0xfffffffe;  /* LR */
+    *(--ptr) = (nya_stack_t)0x0000000CUL;                         /* R12 */
+    *(--ptr) = (nya_stack_t)0x00000003UL;                         /* R3 */
+    *(--ptr) = (nya_stack_t)0x00000002UL;                         /* R2 */
+    *(--ptr) = (nya_stack_t)0x00000001UL;                         /* R1 */
+    *(--ptr) = (nya_stack_t)param;                                /* R0 */
+    *(--ptr) = (nya_stack_t)0x0000000BUL;                         /* R11 */
+    *(--ptr) = (nya_stack_t)0x0000000AUL;                         /* R10 */
+    *(--ptr) = (nya_stack_t)0x00000009UL;                         /* R9 */
+    *(--ptr) = (nya_stack_t)0x00000008UL;                         /* R8 */
+    *(--ptr) = (nya_stack_t)0x00000007UL;                         /* R7 */
+    *(--ptr) = (nya_stack_t)0x00000006UL;                         /* R6 */
+    *(--ptr) = (nya_stack_t)0x00000005UL;                         /* R5 */
+    *(--ptr) = (nya_stack_t)0x00000004UL;                         /* R4 */
 
     nya_stack_t *ret = ptr;
+
     while (ptr-- != stack_ptr)
     {
         *ptr = 0xdeadbeef;
@@ -91,6 +94,7 @@ void nya_port_startup(void)
 
     /* get top of stack and align to 8 bytes */
     nya_stack_t *exception_stack;
+
     exception_stack = &nya_exception_stack[NYA_ARRAY_SIZE(nya_exception_stack)];
     exception_stack = (nya_stack_t *)((nya_stack_t)exception_stack & 0xfffffff8U);
 

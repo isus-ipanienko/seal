@@ -130,7 +130,7 @@ typedef struct
 
     nya_tcb_t tcb_l[NYA_TASK_ID_TOP];
     nya_event_t event_l[NYA_CFG_KERNEL_EVENT_CNT];
-    nya_prioq_t prioq_l[NYA_CFG_PRIORITY_LEVELS];
+    nya_prioq_t prioq_l[NYA_PRIORITY_LEVEL_CNT];
 
     /* TODO: add CLZ priority resolving if no more than 32 priorities exist */
     nya_u8_t prio_grp_rdy[8];

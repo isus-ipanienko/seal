@@ -34,7 +34,6 @@ extern "C" {
 /* Memory Allocation */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_CFG_PRIORITY_LEVELS     2U /**< max: 64 */
 #define NYA_CFG_KERNEL_EVENT_CNT    4U /**< max: nya_size_t max value */
 
 /* ------------------------------------------------------------------------------ */
@@ -98,6 +97,28 @@ typedef enum
 #undef NYA_TASK
     NYA_TASK_ID_TOP,
 } nya_task_id_t;
+/* *INDENT-ON* */
+
+/* ------------------------------------------------------------------------------ */
+/* Priority Enum */
+/* ------------------------------------------------------------------------------ */
+
+/* *INDENT-OFF* */
+/**
+ * @brief This enum is only used to calculate the amount of priority levels.
+ */
+typedef enum
+{
+#define NYA_TASK(_name,             \
+                 _priority,         \
+                 _stack_size,       \
+                 _entry_func,       \
+                 _entry_func_param) \
+    NYA_PRIORITY_LEVEL_##_name = _priority,
+    NYA_TASK_DEFINITIONS
+#undef NYA_TASK
+    NYA_PRIORITY_LEVEL_CNT,
+} nya_priority_level_t;
 /* *INDENT-ON* */
 
 #ifdef __cplusplus

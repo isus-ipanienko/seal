@@ -35,7 +35,6 @@ extern "C" {
 /* ------------------------------------------------------------------------------ */
 
 #define NYA_CFG_PRIORITY_LEVELS     2U /**< max: 64 */
-#define NYA_CFG_TASK_CNT            3U /**< max: nya_size_t max value */
 #define NYA_CFG_KERNEL_EVENT_CNT    4U /**< max: nya_size_t max value */
 
 /* ------------------------------------------------------------------------------ */
@@ -97,6 +96,7 @@ typedef enum
     NYA_TASK_ID_##_name,
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
+    NYA_TASK_ID_TOP,
 } nya_task_id_t;
 /* *INDENT-ON* */
 

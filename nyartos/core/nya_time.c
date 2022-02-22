@@ -39,7 +39,7 @@ void nya_time_systick(void)
     NYA_ENTER_CRITICAL();
 
     /* TODO: create a waiting list with delayed tasks */
-    for (nya_size_t id = 0; id < NYA_CFG_TASK_CNT; id++)
+    for (nya_size_t id = 0; id < NYA_TASK_ID_TOP; id++)
     {
         if (os_ctx.tcb_l[id].delay)
         {

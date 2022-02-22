@@ -128,7 +128,7 @@ typedef struct
 {
     nya_bool_t is_running;
 
-    nya_tcb_t tcb_l[NYA_CFG_TASK_CNT];
+    nya_tcb_t tcb_l[NYA_TASK_ID_TOP];
     nya_event_t event_l[NYA_CFG_KERNEL_EVENT_CNT];
     nya_prioq_t prioq_l[NYA_CFG_PRIORITY_LEVELS];
 

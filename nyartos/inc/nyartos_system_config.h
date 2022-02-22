@@ -42,7 +42,29 @@ extern "C" {
 /* Config Asserts */
 /* ------------------------------------------------------------------------------ */
 
-/*TODO: add asserts to check if config is valid */
+#ifndef NYA_CFG_ENABLE_STATS
+#error NYA_CFG_ENABLE_STATS must be defined!
+#else /* ifndef NYA_CFG_ENABLE_STATS */
+#if (NYA_CFG_ENABLE_STATS != 1U) && (NYA_CFG_ENABLE_STATS != 0U)
+#error NYA_CFG_ENABLE_STATS needs to be either 1U or 0U!
+#endif /* if (NYA_CFG_ENABLE_STATS != 1U) && (NYA_CFG_ENABLE_STATS != 0U) */
+#endif /* ifndef NYA_CFG_ENABLE_STATS */
+
+#ifndef NYA_CFG_ENABLE_MESSAGE_QUEUES
+#error NYA_CFG_ENABLE_MESSAGE_QUEUES must be defined!
+#else /* ifndef NYA_CFG_ENABLE_MESSAGE_QUEUES */
+#if (NYA_CFG_ENABLE_MESSAGE_QUEUES != 1U) && (NYA_CFG_ENABLE_MESSAGE_QUEUES != 0U)
+#error NYA_CFG_ENABLE_MESSAGE_QUEUES needs to be either 1U or 0U!
+#endif /* if (NYA_CFG_ENABLE_MESSAGE_QUEUES != 1U) && (NYA_CFG_ENABLE_MESSAGE_QUEUES != 0U) */
+#endif /* ifndef NYA_CFG_ENABLE_MESSAGE_QUEUES */
+
+#ifndef NYA_CFG_ENABLE_MUTEXES
+#error NYA_CFG_ENABLE_MUTEXES must be defined!
+#else /* ifndef NYA_CFG_ENABLE_MUTEXES */
+#if (NYA_CFG_ENABLE_MUTEXES != 1U) && (NYA_CFG_ENABLE_MUTEXES != 0U)
+#error NYA_CFG_ENABLE_MUTEXES needs to be either 1U or 0U!
+#endif /* if (NYA_CFG_ENABLE_MUTEXES != 1U) && (NYA_CFG_ENABLE_MUTEXES != 0U) */
+#endif /* ifndef NYA_CFG_ENABLE_MUTEXES */
 
 /* ------------------------------------------------------------------------------ */
 /* */

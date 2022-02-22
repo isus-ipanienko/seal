@@ -35,10 +35,11 @@
 
 /* *INDENT-OFF* */
 
-#define NYA_TASK(_priority,   \
-                 _stack_size, \
-                 _name,       \
-                 _entry_func) \
+#define NYA_TASK(_name,             \
+                 _priority,         \
+                 _stack_size,       \
+                 _entry_func,       \
+                 _entry_func_param) \
     static nya_stack_t nya_stack_##_name[NYA_PORT_BYTES_TO_SECTORS(_stack_size)];
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
@@ -110,7 +111,8 @@ static void _init_tcb(nya_size_t id,
                       nya_u8_t base_prio,
                       nya_stack_t stack_size,
                       nya_stack_t *stack_base,
-                      nya_task_func_t entry_func);
+                      nya_task_func_t entry_func,
+                      void *entry_func_param);
 
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
@@ -120,13 +122,14 @@ static void _init_tcb(nya_size_t id,
                       nya_u8_t base_prio,
                       nya_stack_t stack_size,
                       nya_stack_t *stack_base,
-                      nya_task_func_t entry_func)
+                      nya_task_func_t entry_func,
+                      void *entry_func_param)
 {
     os_ctx.tcb_l[id].base_prio = base_prio;
     os_ctx.tcb_l[id].stack_ptr = nya_port_init_stack(entry_func,
                                                      stack_base,
                                                      stack_size,
-                                                     NYA_NULL);
+                                                     entry_func_param);
 #if NYA_CFG_ENABLE_STATS
     os_ctx.tcb_l[id].stack_size = stack_size;
     os_ctx.tcb_l[id].stack_end = &stack_base[stack_size - 1];
@@ -156,15 +159,17 @@ void nya_panic(void)
 
 void nya_init()
 {
-#define NYA_TASK(_priority,                           \
+#define NYA_TASK(_name,                               \
+                 _priority,                           \
                  _stack_size,                         \
-                 _name,                               \
-                 _entry_func)                         \
+                 _entry_func,                         \
+                 _entry_func_param)                   \
     _init_tcb(NYA_TASK_ID_##_name,                    \
               _priority,                              \
               NYA_PORT_BYTES_TO_SECTORS(_stack_size), \
               nya_stack_##_name,                      \
-              _entry_func);
+              _entry_func,                            \
+              _entry_func_param);
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 

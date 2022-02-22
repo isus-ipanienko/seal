@@ -51,6 +51,11 @@ extern "C" {
 /* ------------------------------------------------------------------------------ */
 
 /**
+ * @brief Type for task entry functions.
+ */
+typedef void (*nya_task_func_t)(void *);
+
+/**
  * @brief Task states.
  */
 typedef enum

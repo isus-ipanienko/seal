@@ -77,7 +77,7 @@ void nya_enter_isr(void)
 
     if (os_ctx.isr_nesting_cnt == 255)
     {
-        nya_panic();
+        nya_core_panic();
     }
 
     os_ctx.isr_nesting_cnt++;
@@ -91,7 +91,7 @@ void nya_exit_isr(void)
 
     if (os_ctx.isr_nesting_cnt == 0)
     {
-        nya_panic();
+        nya_core_panic();
     }
 
     os_ctx.isr_nesting_cnt--;

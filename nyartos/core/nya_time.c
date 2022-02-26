@@ -39,14 +39,23 @@ void nya_time_systick(void)
     NYA_ENTER_CRITICAL();
 
     /* TODO: create a waiting list with delayed tasks */
-    for (nya_size_t id = 0; id < NYA_TASK_ID_TOP; id++)
+    for (nya_size_t id = 0; id < NYA_TASK_ID_CNT; id++)
     {
         if (os_ctx.tcb_l[id].delay)
         {
             if (--os_ctx.tcb_l[id].delay == 0)
             {
-                nya_priority_push(id,
-                                  os_ctx.tcb_l[id].base_prio);
+                if (os_ctx.tcb_l[id].state == NYA_TASK_WAITING_FOR_EVENT)
+                {
+                    nya_mutex_timeout(&os_ctx.tcb_l[id]);
+                }
+                else if (os_ctx.tcb_l[id].state != NYA_TASK_ASLEEP)
+                {
+                    nya_core_panic();
+                }
+
+                nya_priority_push_last(&os_ctx.tcb_l[id]);
+                os_ctx.tcb_l[id].state = NYA_TASK_READY;
             }
         }
     }
@@ -63,8 +72,9 @@ void nya_sleep(nya_size_t ticks)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
+    nya_curr_task->state = NYA_TASK_ASLEEP;
     nya_curr_task->delay = ticks;
-    nya_priority_pop(nya_curr_task->base_prio);
+    nya_priority_pop(nya_curr_task);
 
     NYA_EXIT_CRITICAL();
 

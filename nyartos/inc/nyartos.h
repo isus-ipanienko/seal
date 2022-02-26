@@ -56,7 +56,8 @@ extern "C" {
 typedef enum
 {
     NYA_OK = 0,
-    NYA_FAIL,
+    NYA_ERROR,
+    NYA_WRONG_EVENT,
     NYA_TIMEOUT,
 } nya_error_t;
 
@@ -90,22 +91,20 @@ void nya_init(void);
 void nya_sleep(nya_size_t ticks);
 
 /**
- * @brief
- * @note not implemented
- * @param id
- * @param timeout
- * @return NYA_ERROR
+ * @brief   Attempts to take a mutex.
+ * @param   [in] id - id of the mutex
+ * @param   [in] timeout - timeout in systicks
+ * @return  NYA_OK - mutex taken successfully
  */
-nya_error_t nya_sem_take(nya_size_t id,
-                         nya_size_t timeout);
+nya_error_t nya_mutex_take(nya_event_id_t id,
+                           nya_size_t timeout);
 
 /**
- * @brief
- * @note not implemented
- * @param id
- * @return NYA_ERROR
+ * @brief   Attempts to give a mutex.
+ * @param   [in] id - id of the mutex
+ * @return  NYA_OK - mutex given successfully
  */
-nya_error_t nya_sem_give(nya_size_t id);
+nya_error_t nya_mutex_give(nya_event_id_t id);
 
 /* ------------------------------------------------------------------------------ */
 /* Hooks */
@@ -115,6 +114,11 @@ nya_error_t nya_sem_give(nya_size_t id);
  * @brief This hook is called once upon entering a kernel panic.
  */
 void nya_panic_hook(void);
+
+/**
+ * @brief This hook is called once upon exiting a task.
+ */
+void nya_task_exit_hook(void);
 
 /* ------------------------------------------------------------------------------ */
 /* */

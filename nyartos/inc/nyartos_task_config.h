@@ -31,10 +31,26 @@ extern "C" {
 #endif /* ifdef __cplusplus */
 
 /* ------------------------------------------------------------------------------ */
-/* Memory Allocation */
+/* Kernel Event Definitions */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_CFG_KERNEL_EVENT_CNT    4U /**< max: nya_size_t max value */
+#define NYA_MUTEX_DEFINITIONS \
+    NYA_MUTEX(NYA_MUTEX_ID_FOO)
+
+/* ------------------------------------------------------------------------------ */
+/* Kernel Event ID Enum */
+/* ------------------------------------------------------------------------------ */
+
+/* *INDENT-OFF* */
+typedef enum
+{
+#define NYA_MUTEX(_id) \
+    _id,
+    NYA_MUTEX_DEFINITIONS
+#undef NYA_MUTEX
+    NYA_EVENT_ID_CNT,
+} nya_event_id_t;
+/* *INDENT-ON* */
 
 /* ------------------------------------------------------------------------------ */
 /* Task Definitions */
@@ -47,35 +63,35 @@ extern "C" {
  *          the definition of @c nya_priority_level_t and define NYA_PRIORITY_LEVEL_CNT yourself.
  *          #define NYA_PRIORITY_LEVEL_CNT (max_priority + 1)
  *
- *  NYA_TASK(_name,             - Name of the task. It's used for inter-task communication. See @c nya_task_id_t.
+ *  NYA_TASK(_id,               - Id of the task. It's used for inter-task communication.
  *           _priority,         - Base priority level of the task.
  *           _stack_size,       - Stack size allocated for the task [in bytes].
  *                                Note that it will be rounded down to a multiple of sizeof(nya_stack_t).
  *           _entry_func,       - Name of the entry function.
  *           _entry_func_param) - Pointer to the entry function parameter.
  */
-#define NYA_TASK_DEFINITIONS \
-    NYA_TASK(LED,            \
-             0,              \
-             512,            \
-             led_entry,      \
-             NYA_NULL)       \
-    NYA_TASK(PRINT,          \
-             0,              \
-             512,            \
-             print_entry,    \
-             NYA_NULL)       \
-    NYA_TASK(IDLE,           \
-             1,              \
-             512,            \
-             idle_entry,     \
+#define NYA_TASK_DEFINITIONS    \
+    NYA_TASK(NYA_TASK_ID_LED,   \
+             0,                 \
+             512,               \
+             led_entry,         \
+             NYA_NULL)          \
+    NYA_TASK(NYA_TASK_ID_PRINT, \
+             0,                 \
+             512,               \
+             print_entry,       \
+             NYA_NULL)          \
+    NYA_TASK(NYA_TASK_ID_IDLE,  \
+             1,                 \
+             512,               \
+             idle_entry,        \
              NYA_NULL)
 
 /* ------------------------------------------------------------------------------ */
 /* Entry Function Prototypes */
 /* ------------------------------------------------------------------------------ */
 
-#define NYA_TASK(_name,             \
+#define NYA_TASK(_id,               \
                  _priority,         \
                  _stack_size,       \
                  _entry_func,       \
@@ -94,15 +110,15 @@ NYA_TASK_DEFINITIONS
  */
 typedef enum
 {
-#define NYA_TASK(_name,             \
+#define NYA_TASK(_id,               \
                  _priority,         \
                  _stack_size,       \
                  _entry_func,       \
                  _entry_func_param) \
-    NYA_TASK_ID_##_name,
+    _id,
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
-    NYA_TASK_ID_TOP,
+    NYA_TASK_ID_CNT,
 } nya_task_id_t;
 /* *INDENT-ON* */
 
@@ -116,12 +132,12 @@ typedef enum
  */
 typedef enum
 {
-#define NYA_TASK(_name,             \
+#define NYA_TASK(_id,               \
                  _priority,         \
                  _stack_size,       \
                  _entry_func,       \
                  _entry_func_param) \
-    NYA_PRIORITY_LEVEL_##_name = _priority,
+    NYA_PRIORITY_LEVEL_##_id = _priority,
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
     NYA_PRIORITY_LEVEL_CNT,

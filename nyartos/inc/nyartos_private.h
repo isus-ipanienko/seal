@@ -56,19 +56,30 @@ extern "C" {
 typedef void (*nya_task_func_t)(void *);
 
 /**
+ * @brief Wait return type.
+ */
+typedef enum
+{
+    NYA_WAIT_RET_OK,
+    NYA_WAIT_RET_TIMEOUT,
+} nya_wait_ret_t;
+
+/**
  * @brief Task states.
  */
 typedef enum
 {
+    NYA_TASK_READY,
     NYA_TASK_RUNNING,
-    NYA_TASK_PREEMPTED,
-    NYA_TASK_WAITING,
+    NYA_TASK_ASLEEP,
+    NYA_TASK_WAITING_FOR_EVENT,
 } nya_task_state_t;
 
 typedef enum
 {
-    NYA_MUTEX_T,
-    NYA_MSGQ_T,
+    NYA_EVENT_BOTTOM = 0,
+    NYA_EVENT_MUTEX,
+    NYA_EVENT_TOP,
 } nya_event_type_t;
 
 /**
@@ -78,6 +89,7 @@ typedef struct
 {
     nya_event_type_t type;
     struct nya_tcb_t *holder;
+    struct nya_tcb_t *waiting_l;
 } nya_event_t;
 
 /**
@@ -89,16 +101,17 @@ typedef struct nya_tcb_t
 
     nya_size_t delay;
     nya_task_state_t state;
+    nya_task_id_t tid;
 
     nya_u8_t base_prio;               /**< Base priority */
+    nya_u8_t curr_prio;               /**< Highest inherited priority */
+
     struct nya_tcb_t *next_in_prioq;  /**< Next task in priority queue */
     struct nya_tcb_t *prev_in_prioq;  /**< Previous task in priority queue */
-
-    nya_u8_t high_prio;               /**< Highest inherited priority */
-    struct nya_tcb_t *next_in_waitq;  /**< Next task in waiting queue */
-    struct nya_tcb_t *prev_in_waitq;  /**< Previous task in waiting queue */
+    struct nya_tcb_t *next_in_eventq; /**< Next task in waiting queue */
+    struct nya_tcb_t *prev_in_eventq; /**< Previous task in waiting queue */
     nya_event_t *wait_event;          /**< The event that this task is waiting for */
-    nya_event_type_t wait_event_type; /**< Type of the event that this task is waiting for */
+    nya_wait_ret_t wait_return;       /**< This indicates if task timed out while waiting for something */
 
 #if NYA_CFG_ENABLE_MESSAGE_QUEUES
     nya_msgq_t msgq;
@@ -128,8 +141,8 @@ typedef struct
 {
     nya_bool_t is_running;
 
-    nya_tcb_t tcb_l[NYA_TASK_ID_TOP];
-    nya_event_t event_l[NYA_CFG_KERNEL_EVENT_CNT];
+    nya_tcb_t tcb_l[NYA_TASK_ID_CNT];
+    nya_event_t event_l[NYA_EVENT_ID_CNT];
     nya_prioq_t prioq_l[NYA_PRIORITY_LEVEL_CNT];
 
     /* TODO: add CLZ priority resolving if no more than 32 priorities exist */
@@ -158,27 +171,62 @@ extern nya_os_ctx_t os_ctx;
 /**
  * @brief This function is called whenever something really bad happens.
  */
-void nya_panic(void);
+void nya_core_panic(void);
+
+/**
+ * @brief This function replaces a task in it's wait_event queue according to it's new priority.
+ * @note  It will also adjust the priority of the wait_event's holder, and it's waiting_event's holder, and so on...
+ * @note  Nyartos assumes that priorities are always sorted as soon as they need to change. There are no unsorted lists.
+ * @param [in] task - pointer to the task
+ * @param [in] new_prio - new priority of the task
+ */
+void nya_core_sort_event_waiting_lists(nya_tcb_t *task,
+                                       nya_u8_t new_prio);
 
 /**
  * @brief This function is called when a task exits.
  */
-void nya_task_exit(void);
+void nya_core_task_exit(void);
+
+/**
+ * @brief Initializes a mutex.
+ * @param [in] id - id of the mutex
+ */
+void nya_mutex_init(nya_event_id_t id);
+
+/**
+ * @brief Timeouts a task and removes it from the mutex waiting list.
+ * @param [in] task - timed out task
+ */
+void nya_mutex_timeout(nya_tcb_t *task);
 
 /**
  * @brief   Pops a priority queue.
  * @note    Doesn't support priority inheritance, yet.
  * @note    Always call this from within a critical section.
  */
-void nya_priority_pop(nya_u8_t priority);
+void nya_priority_pop(nya_tcb_t *task);
+
+/**
+ * @brief   Pops a priority queue.
+ * @note    Doesn't support priority inheritance, yet.
+ * @note    Always call this from within a critical section.
+ */
+void nya_priority_remove(nya_tcb_t *task);
 
 /**
  * @brief   Pushes a task to a priority queue.
  * @note    Doesn't support priority inheritance, yet.
  * @note    Always call this from within a critical section.
  */
-void nya_priority_push(nya_size_t id,
-                       nya_u8_t priority);
+void nya_priority_push_first(nya_tcb_t *task);
+
+/**
+ * @brief   Pushes a task to a priority queue.
+ * @note    Doesn't support priority inheritance, yet.
+ * @note    Always call this from within a critical section.
+ */
+void nya_priority_push_last(nya_tcb_t *task);
 
 /**
  * @brief Sets @c nya_next_task to point at the first ready task with the highest priority.

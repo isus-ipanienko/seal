@@ -35,12 +35,12 @@
 
 /* *INDENT-OFF* */
 
-#define NYA_TASK(_name,             \
+#define NYA_TASK(_id,               \
                  _priority,         \
                  _stack_size,       \
                  _entry_func,       \
                  _entry_func_param) \
-    static nya_stack_t nya_stack_##_name[NYA_PORT_BYTES_TO_SECTORS(_stack_size)];
+    static nya_stack_t nya_stack_##_id[NYA_PORT_BYTES_TO_SECTORS(_stack_size)];
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 
@@ -125,7 +125,9 @@ static void _init_tcb(nya_size_t id,
                       nya_task_func_t entry_func,
                       void *entry_func_param)
 {
+    os_ctx.tcb_l[id].tid = id;
     os_ctx.tcb_l[id].base_prio = base_prio;
+    os_ctx.tcb_l[id].curr_prio = base_prio;
     os_ctx.tcb_l[id].stack_ptr = nya_port_init_stack(entry_func,
                                                      stack_base,
                                                      stack_size,
@@ -135,27 +137,8 @@ static void _init_tcb(nya_size_t id,
     os_ctx.tcb_l[id].stack_end = &stack_base[stack_size - 1];
 #endif /* if NYA_CFG_ENABLE_STATS */
 
-    nya_priority_push(id,
-                      base_prio);
-}
-
-/* ------------------------------------------------------------------------------ */
-/* Global Declarations */
-/* ------------------------------------------------------------------------------ */
-
-/* TODO: find a better home for these functions */
-void nya_panic(void)
-{
-    NYA_DISABLE_INTERRUPTS();
-    nya_panic_hook();
-
-    while (1)
-    {}
-}
-
-void nya_task_exit(void)
-{
-    nya_panic();
+    nya_priority_push_last(&os_ctx.tcb_l[id]);
+    os_ctx.tcb_l[id].state = NYA_TASK_READY;
 }
 
 /* ------------------------------------------------------------------------------ */
@@ -164,24 +147,29 @@ void nya_task_exit(void)
 
 void nya_init()
 {
-#define NYA_TASK(_name,                               \
+#define NYA_TASK(_id,                                 \
                  _priority,                           \
                  _stack_size,                         \
                  _entry_func,                         \
                  _entry_func_param)                   \
-    _init_tcb(NYA_TASK_ID_##_name,                    \
+    _init_tcb(_id,                                    \
               _priority,                              \
               NYA_PORT_BYTES_TO_SECTORS(_stack_size), \
-              nya_stack_##_name,                      \
+              nya_stack_##_id,                        \
               _entry_func,                            \
               _entry_func_param);
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
+
+#define NYA_MUTEX(_id) \
+    nya_mutex_init(_id);
+    NYA_MUTEX_DEFINITIONS
+#undef NYA_MUTEX
 
     nya_scheduler_set_next_task();
 
     nya_port_startup();
 
     /* nya_port_startup(); should never return */
-    nya_panic();
+    nya_core_panic();
 }

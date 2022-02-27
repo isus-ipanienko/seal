@@ -179,6 +179,18 @@ void nya_core_panic(void);
 void nya_core_task_exit(void);
 
 /**
+ * @brief    Triggers a context switch.
+ * @warning  Don't call it from an ISR, @c nya_exit_isr() handles context switching from ISRs.
+ */
+void nya_core_schedule(void);
+
+/**
+ * @brief   Increments the systick.
+ * @note    This function contains a critical section.
+ */
+void nya_core_systick(void);
+
+/**
  * @brief Initializes a mutex.
  * @param [in] id - id of the mutex
  */
@@ -217,25 +229,6 @@ void nya_priority_push_first(nya_tcb_t *task);
  * @note    Always call this from within a critical section.
  */
 void nya_priority_push_last(nya_tcb_t *task);
-
-/**
- * @brief Sets @c nya_next_task to point at the first ready task with the highest priority.
- *
- * @return NYA_TRUE - a context switch is needed; NYA_FALSE - no context switch is needed
- */
-nya_bool_t nya_scheduler_set_next_task(void);
-
-/**
- * @brief    Triggers a context switch.
- * @warning  Don't call it from an ISR, @c nya_exit_isr() handles context switching from ISRs.
- */
-void nya_scheduler_switch(void);
-
-/**
- * @brief   Increments the systick.
- * @note    This function contains a critical section.
- */
-void nya_time_systick(void);
 
 /**
  * @brief   Initializes a task's stack.

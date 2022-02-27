@@ -127,7 +127,7 @@ void nya_port_systick_handler(void)
 {
     nya_enter_isr();
 
-    nya_time_systick();
+    nya_core_systick();
 
     nya_exit_isr();
 }

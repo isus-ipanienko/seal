@@ -40,15 +40,15 @@
  * @param [in] task - pointer to the task
  * @param [in] new_prio - new priority of the task
  */
-void nya_mutex_sort_waiting_lists(nya_tcb_t *task,
-                                  nya_u8_t new_prio);
+static void _mutex_sort_waiting_lists(nya_tcb_t *task,
+                                      nya_u8_t new_prio);
 
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
 /* ------------------------------------------------------------------------------ */
 
-void nya_mutex_sort_waiting_lists(nya_tcb_t *task,
-                                  nya_u8_t new_prio)
+static void _mutex_sort_waiting_lists(nya_tcb_t *task,
+                                      nya_u8_t new_prio)
 {
     nya_tcb_t *super_holder = NYA_NULL;
     nya_tcb_t *waiting_holder = task;
@@ -158,8 +158,8 @@ void nya_mutex_timeout(nya_tcb_t *task)
         }
         else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
         {
-            nya_mutex_sort_waiting_lists(holder,
-                                         holder_next_prio);
+            _mutex_sort_waiting_lists(holder,
+                                      holder_next_prio);
         }
 
         holder->curr_prio = holder_next_prio;
@@ -204,8 +204,8 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
             }
             else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
             {
-                nya_mutex_sort_waiting_lists(holder,
-                                             nya_next_task->curr_prio);
+                _mutex_sort_waiting_lists(holder,
+                                          nya_next_task->curr_prio);
             }
 
             holder->curr_prio = nya_curr_task->curr_prio;
@@ -245,7 +245,7 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
 
         NYA_EXIT_CRITICAL();
 
-        nya_scheduler_switch();
+        nya_core_schedule();
     }
     else
     {
@@ -295,7 +295,7 @@ nya_error_t nya_mutex_give(nya_event_id_t id)
 
         NYA_EXIT_CRITICAL();
 
-        nya_scheduler_switch();
+        nya_core_schedule();
     }
     else
     {

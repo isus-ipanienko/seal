@@ -174,16 +174,6 @@ extern nya_os_ctx_t os_ctx;
 void nya_core_panic(void);
 
 /**
- * @brief This function replaces a task in it's wait_event queue according to it's new priority.
- * @note  It will also adjust the priority of the wait_event's holder, and it's waiting_event's holder, and so on...
- * @note  Nyartos assumes that priorities are always sorted as soon as they need to change. There are no unsorted lists.
- * @param [in] task - pointer to the task
- * @param [in] new_prio - new priority of the task
- */
-void nya_core_sort_event_waiting_lists(nya_tcb_t *task,
-                                       nya_u8_t new_prio);
-
-/**
  * @brief This function is called when a task exits.
  */
 void nya_core_task_exit(void);

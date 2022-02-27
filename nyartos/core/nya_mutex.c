@@ -30,6 +30,79 @@
 #include "nyartos_private.h"
 
 /* ------------------------------------------------------------------------------ */
+/* Private Prototypes */
+/* ------------------------------------------------------------------------------ */
+
+/**
+ * @brief This function replaces a task in it's wait_event queue according to it's new priority.
+ * @note  It will also adjust the priority of the wait_event's holder, and it's waiting_event's holder, and so on...
+ * @note  Nyartos assumes that priorities are always sorted as soon as they need to change. There are no unsorted lists.
+ * @param [in] task - pointer to the task
+ * @param [in] new_prio - new priority of the task
+ */
+void nya_mutex_sort_waiting_lists(nya_tcb_t *task,
+                                  nya_u8_t new_prio);
+
+/* ------------------------------------------------------------------------------ */
+/* Private Declarations */
+/* ------------------------------------------------------------------------------ */
+
+void nya_mutex_sort_waiting_lists(nya_tcb_t *task,
+                                  nya_u8_t new_prio)
+{
+    nya_tcb_t *super_holder = NYA_NULL;
+    nya_tcb_t *waiting_holder = task;
+
+    do
+    {
+        super_holder = waiting_holder->wait_event->holder;
+
+        if (waiting_holder->wait_event->waiting_l == waiting_holder)
+        {
+            if (super_holder->state == NYA_TASK_READY)
+            {
+                nya_priority_remove(super_holder);
+            }
+
+            super_holder->curr_prio = new_prio;
+            nya_priority_push_first(super_holder);
+        }
+        else
+        {
+            if (waiting_holder->prev_in_eventq != NYA_NULL)
+            {
+                waiting_holder->prev_in_eventq->next_in_eventq = waiting_holder->next_in_eventq;
+            }
+
+            if (waiting_holder->next_in_eventq != NYA_NULL)
+            {
+                waiting_holder->next_in_eventq->prev_in_eventq = waiting_holder->prev_in_eventq;
+            }
+
+            nya_tcb_t *place_in_waiting_l = waiting_holder->wait_event->waiting_l;
+
+            while ((place_in_waiting_l->next_in_eventq != NYA_NULL) && (place_in_waiting_l->next_in_eventq->curr_prio <=
+                                                                        waiting_holder->curr_prio))
+            {
+                place_in_waiting_l = place_in_waiting_l->next_in_eventq;
+            }
+
+            waiting_holder->prev_in_eventq = place_in_waiting_l;
+            waiting_holder->next_in_eventq = place_in_waiting_l->next_in_eventq;
+
+            if (place_in_waiting_l->next_in_eventq != NYA_NULL)
+            {
+                place_in_waiting_l->next_in_eventq->prev_in_eventq = waiting_holder;
+                place_in_waiting_l->next_in_eventq = waiting_holder;
+            }
+        }
+
+        waiting_holder = super_holder;
+    } while ((super_holder->state == NYA_TASK_WAITING_FOR_EVENT) && (super_holder->wait_event->type ==
+                                                                     NYA_EVENT_MUTEX));
+}
+
+/* ------------------------------------------------------------------------------ */
 /* Global Declarations */
 /* ------------------------------------------------------------------------------ */
 
@@ -85,8 +158,8 @@ void nya_mutex_timeout(nya_tcb_t *task)
         }
         else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
         {
-            nya_core_sort_event_waiting_lists(holder,
-                                              holder_next_prio);
+            nya_mutex_sort_waiting_lists(holder,
+                                         holder_next_prio);
         }
 
         holder->curr_prio = holder_next_prio;
@@ -131,8 +204,8 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
             }
             else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
             {
-                nya_core_sort_event_waiting_lists(holder,
-                                                  nya_next_task->curr_prio);
+                nya_mutex_sort_waiting_lists(holder,
+                                             nya_next_task->curr_prio);
             }
 
             holder->curr_prio = nya_curr_task->curr_prio;

@@ -154,9 +154,9 @@ nya_bool_t _set_next_task(void)
         highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_rdy[highest_priority]] +
                            (highest_priority * 8);
 
-        if (os_ctx.prioq_l[highest_priority].first != nya_next_task)
+        if (os_ctx.prio_l[highest_priority].first != nya_next_task)
         {
-            nya_next_task = os_ctx.prioq_l[highest_priority].first;
+            nya_next_task = os_ctx.prio_l[highest_priority].first;
 
             return NYA_TRUE;
         }
@@ -211,7 +211,7 @@ void nya_core_systick(void)
             {
                 if (os_ctx.tcb_l[id].state == NYA_TASK_WAITING_FOR_EVENT)
                 {
-                    nya_mutex_timeout(&os_ctx.tcb_l[id]);
+                    nya_event_timeout(&os_ctx.tcb_l[id]);
                 }
                 else if (os_ctx.tcb_l[id].state != NYA_TASK_ASLEEP)
                 {
@@ -295,11 +295,21 @@ void nya_init()
     NYA_TASK_DEFINITIONS
 #undef NYA_TASK
 
-#define NYA_MUTEX(_id) \
-    nya_mutex_init(_id);
+#define NYA_MUTEX(_id)              \
+    nya_event_init(_id,             \
+                   NYA_EVENT_MUTEX, \
+                   0);
 
     NYA_MUTEX_DEFINITIONS
 #undef NYA_MUTEX
+
+#define NYA_SEMAPHORE(_id, _count)      \
+    nya_event_init(_id,                 \
+                   NYA_EVENT_SEMAPHORE, \
+                   _count);
+
+    NYA_SEMAPHORE_DEFINITIONS
+#undef NYA_SEMAPHORE
 
     if (_set_next_task())
     {

@@ -29,6 +29,34 @@ void print_entry(void *param)
 {
     NYA_UNUSED(param);
 
+    nya_sleep(2000);
+
+    if (nya_semaphore_take(NYA_SEMAPHORE_ID_FOO,
+                           2000) == NYA_TIMEOUT)
+    {
+        while (1)
+        {
+            HAL_UART_Transmit(&huart2,
+                              (uint8_t *)"semaphore timeout\n",
+                              sizeof("semaphore timeout\n") - 1,
+                              100);
+            nya_sleep(250);
+        }
+    }
+
+    if (nya_mutex_take(NYA_MUTEX_ID_FOO,
+                       2000) == NYA_TIMEOUT)
+    {
+        while (1)
+        {
+            HAL_UART_Transmit(&huart2,
+                              (uint8_t *)"mutex timeout\n",
+                              sizeof("mutex timeout\n") - 1,
+                              100);
+            nya_sleep(250);
+        }
+    }
+
     while (1)
     {
         HAL_UART_Transmit(&huart2,

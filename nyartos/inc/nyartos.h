@@ -92,6 +92,8 @@ void nya_sleep(nya_size_t ticks);
 
 /**
  * @brief   Attempts to take a mutex.
+ *          @warning Waiting on a semaphore while holding any amount of mutexes may introduce priority inversion.
+ *          @note timeout == 0 indicates that the task is willing to wait indefinitely
  * @param   [in] id - id of the mutex
  * @param   [in] timeout - timeout in systicks
  * @return  NYA_OK - mutex taken successfully
@@ -105,6 +107,24 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
  * @return  NYA_OK - mutex given successfully
  */
 nya_error_t nya_mutex_give(nya_event_id_t id);
+
+/**
+ * @brief   Attempts to take a semaphore.
+ *          @warning Waiting on a semaphore while holding any amount of mutexes may introduce priority inversion.
+ *          @note timeout == 0 indicates that the task is willing to wait indefinitely
+ * @param   [in] id - id of the semaphore
+ * @param   [in] timeout - timeout in systicks
+ * @return  NYA_OK - semaphore taken successfully
+ */
+nya_error_t nya_semaphore_take(nya_event_id_t id,
+                               nya_size_t timeout);
+
+/**
+ * @brief   Attempts to give a semaphore.
+ * @param   [in] id - id of the semaphore
+ * @return  NYA_OK - semaphore given successfully
+ */
+nya_error_t nya_semaphore_give(nya_event_id_t id);
 
 /* ------------------------------------------------------------------------------ */
 /* Hooks */

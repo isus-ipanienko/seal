@@ -79,6 +79,7 @@ typedef enum
 {
     NYA_EVENT_BOTTOM = 0,
     NYA_EVENT_MUTEX,
+    NYA_EVENT_SEMAPHORE,
     NYA_EVENT_TOP,
 } nya_event_type_t;
 
@@ -90,6 +91,7 @@ typedef struct
     nya_event_type_t type;
     struct nya_tcb_t *holder;
     struct nya_tcb_t *waiting_l;
+    nya_size_t count;
 } nya_event_t;
 
 /**
@@ -103,15 +105,15 @@ typedef struct nya_tcb_t
     nya_task_state_t state;
     nya_task_id_t tid;
 
-    nya_u8_t base_prio;               /**< Base priority */
-    nya_u8_t curr_prio;               /**< Highest inherited priority */
+    nya_u8_t base_prio;                /**< Base priority */
+    nya_u8_t curr_prio;                /**< Highest inherited priority */
 
-    struct nya_tcb_t *next_in_prioq;  /**< Next task in priority queue */
-    struct nya_tcb_t *prev_in_prioq;  /**< Previous task in priority queue */
-    struct nya_tcb_t *next_in_eventq; /**< Next task in waiting queue */
-    struct nya_tcb_t *prev_in_eventq; /**< Previous task in waiting queue */
-    nya_event_t *wait_event;          /**< The event that this task is waiting for */
-    nya_wait_ret_t wait_return;       /**< This indicates if task timed out while waiting for something */
+    struct nya_tcb_t *next_in_delay_q; /**< Next task in delay queue */
+    struct nya_tcb_t *prev_in_delay_q; /**< Previous task in delay queue */
+    struct nya_tcb_t *next_in_ready_q; /**< Next task in priority/event queue */
+    struct nya_tcb_t *prev_in_ready_q; /**< Previous task in priority/event queue */
+    nya_event_t *wait_event;           /**< The event that this task is waiting for */
+    nya_wait_ret_t wait_return;        /**< This indicates if task timed out while waiting for something */
 
 #if NYA_CFG_ENABLE_MESSAGE_QUEUES
     nya_msgq_t msgq;
@@ -130,7 +132,6 @@ typedef struct
 {
     nya_tcb_t *first; /**< First task in this priority. */
     nya_tcb_t *last;  /**< Last task in this priority. */
-    nya_size_t count; /**< Number of waiting tasks in this priority. */
     nya_u8_t mode;    /**< mode = 1 -> FIFO */
 } nya_prioq_t;
 
@@ -143,7 +144,7 @@ typedef struct
 
     nya_tcb_t tcb_l[NYA_TASK_ID_CNT];
     nya_event_t event_l[NYA_EVENT_ID_CNT];
-    nya_prioq_t prioq_l[NYA_PRIORITY_LEVEL_CNT];
+    nya_prioq_t prio_l[NYA_PRIORITY_LEVEL_CNT];
 
     /* TODO: add CLZ priority resolving if no more than 32 priorities exist */
     nya_u8_t prio_grp_rdy[8];
@@ -194,13 +195,15 @@ void nya_core_systick(void);
  * @brief Initializes a mutex.
  * @param [in] id - id of the mutex
  */
-void nya_mutex_init(nya_event_id_t id);
+void nya_event_init(nya_event_id_t id,
+                    nya_event_type_t type,
+                    nya_u32_t count);
 
 /**
  * @brief Timeouts a task and removes it from the mutex waiting list.
  * @param [in] task - timed out task
  */
-void nya_mutex_timeout(nya_tcb_t *task);
+void nya_event_timeout(nya_tcb_t *task);
 
 /**
  * @brief   Pops a priority queue.

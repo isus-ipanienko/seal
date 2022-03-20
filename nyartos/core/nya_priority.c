@@ -35,12 +35,12 @@
 
 void nya_priority_pop(nya_tcb_t *task)
 {
-    if (os_ctx.prioq_l[task->curr_prio].first == NYA_NULL)
+    if (os_ctx.prio_l[task->curr_prio].first == NYA_NULL)
     {
         nya_core_panic();
     }
 
-    if (os_ctx.prioq_l[task->curr_prio].first->next_in_prioq == NYA_NULL)
+    if (os_ctx.prio_l[task->curr_prio].first->next_in_ready_q == NYA_NULL)
     {
         os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[task->curr_prio]] &= ~os_ctx.prio_mask_lkp[task->curr_prio];
 
@@ -49,38 +49,38 @@ void nya_priority_pop(nya_tcb_t *task)
             os_ctx.prio_grp_cluster_rdy &= ~os_ctx.prio_mask_lkp[os_ctx.prio_indx_lkp[task->curr_prio]];
         }
 
-        os_ctx.prioq_l[task->curr_prio].first = NYA_NULL;
-        os_ctx.prioq_l[task->curr_prio].last = NYA_NULL;
+        os_ctx.prio_l[task->curr_prio].first = NYA_NULL;
+        os_ctx.prio_l[task->curr_prio].last = NYA_NULL;
     }
     else
     {
-        os_ctx.prioq_l[task->curr_prio].first = os_ctx.prioq_l[task->curr_prio].first->next_in_prioq;
+        os_ctx.prio_l[task->curr_prio].first = os_ctx.prio_l[task->curr_prio].first->next_in_ready_q;
     }
 }
 
 void nya_priority_remove(nya_tcb_t *task)
 {
-    if (os_ctx.prioq_l[task->curr_prio].first == task)
+    if (os_ctx.prio_l[task->curr_prio].first == task)
     {
-        os_ctx.prioq_l[task->curr_prio].first = task->next_in_prioq;
+        os_ctx.prio_l[task->curr_prio].first = task->next_in_ready_q;
     }
 
-    if (os_ctx.prioq_l[task->curr_prio].last == task)
+    if (os_ctx.prio_l[task->curr_prio].last == task)
     {
-        os_ctx.prioq_l[task->curr_prio].last = task->prev_in_prioq;
+        os_ctx.prio_l[task->curr_prio].last = task->prev_in_ready_q;
     }
 
-    if (task->prev_in_prioq != NYA_NULL)
+    if (task->prev_in_ready_q != NYA_NULL)
     {
-        task->prev_in_prioq->next_in_prioq = task->next_in_prioq;
+        task->prev_in_ready_q->next_in_ready_q = task->next_in_ready_q;
     }
 
-    if (task->next_in_prioq != NYA_NULL)
+    if (task->next_in_ready_q != NYA_NULL)
     {
-        task->next_in_prioq->prev_in_prioq = task->prev_in_prioq;
+        task->next_in_ready_q->prev_in_ready_q = task->prev_in_ready_q;
     }
 
-    if (os_ctx.prioq_l[task->curr_prio].first == NYA_NULL)
+    if (os_ctx.prio_l[task->curr_prio].first == NYA_NULL)
     {
         os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[task->curr_prio]] &= ~os_ctx.prio_mask_lkp[task->curr_prio];
 
@@ -93,40 +93,40 @@ void nya_priority_remove(nya_tcb_t *task)
 
 void nya_priority_push_last(nya_tcb_t *task)
 {
-    if (os_ctx.prioq_l[task->curr_prio].first == NYA_NULL)
+    if (os_ctx.prio_l[task->curr_prio].first == NYA_NULL)
     {
-        task->prev_in_prioq = NYA_NULL;
-        task->next_in_prioq = NYA_NULL;
-        os_ctx.prioq_l[task->curr_prio].first = task;
-        os_ctx.prioq_l[task->curr_prio].last = task;
+        task->prev_in_ready_q = NYA_NULL;
+        task->next_in_ready_q = NYA_NULL;
+        os_ctx.prio_l[task->curr_prio].first = task;
+        os_ctx.prio_l[task->curr_prio].last = task;
         os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[task->curr_prio]] |= os_ctx.prio_mask_lkp[task->curr_prio];
         os_ctx.prio_grp_cluster_rdy |= os_ctx.prio_mask_lkp[os_ctx.prio_indx_lkp[task->curr_prio]];
     }
     else
     {
-        task->prev_in_prioq = os_ctx.prioq_l[task->curr_prio].last;
-        task->next_in_prioq = NYA_NULL;
-        os_ctx.prioq_l[task->curr_prio].last->next_in_prioq = task;
-        os_ctx.prioq_l[task->curr_prio].last = task;
+        task->prev_in_ready_q = os_ctx.prio_l[task->curr_prio].last;
+        task->next_in_ready_q = NYA_NULL;
+        os_ctx.prio_l[task->curr_prio].last->next_in_ready_q = task;
+        os_ctx.prio_l[task->curr_prio].last = task;
     }
 }
 
 void nya_priority_push_first(nya_tcb_t *task)
 {
-    if (os_ctx.prioq_l[task->curr_prio].first == NYA_NULL)
+    if (os_ctx.prio_l[task->curr_prio].first == NYA_NULL)
     {
-        task->prev_in_prioq = NYA_NULL;
-        task->next_in_prioq = NYA_NULL;
-        os_ctx.prioq_l[task->curr_prio].first = task;
-        os_ctx.prioq_l[task->curr_prio].last = task;
+        task->prev_in_ready_q = NYA_NULL;
+        task->next_in_ready_q = NYA_NULL;
+        os_ctx.prio_l[task->curr_prio].first = task;
+        os_ctx.prio_l[task->curr_prio].last = task;
         os_ctx.prio_grp_rdy[os_ctx.prio_indx_lkp[task->curr_prio]] |= os_ctx.prio_mask_lkp[task->curr_prio];
         os_ctx.prio_grp_cluster_rdy |= os_ctx.prio_mask_lkp[os_ctx.prio_indx_lkp[task->curr_prio]];
     }
     else
     {
-        task->prev_in_prioq = NYA_NULL;
-        task->next_in_prioq = os_ctx.prioq_l[task->curr_prio].first;
-        os_ctx.prioq_l[task->curr_prio].first->prev_in_prioq = task;
-        os_ctx.prioq_l[task->curr_prio].first = task;
+        task->prev_in_ready_q = NYA_NULL;
+        task->next_in_ready_q = os_ctx.prio_l[task->curr_prio].first;
+        os_ctx.prio_l[task->curr_prio].first->prev_in_ready_q = task;
+        os_ctx.prio_l[task->curr_prio].first = task;
     }
 }

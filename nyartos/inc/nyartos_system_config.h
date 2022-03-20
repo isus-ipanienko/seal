@@ -37,6 +37,7 @@ extern "C" {
 #define NYA_CFG_ENABLE_STATS             0U
 #define NYA_CFG_ENABLE_MESSAGE_QUEUES    0U
 #define NYA_CFG_ENABLE_MUTEXES           0U
+#define NYA_CFG_ENABLE_SEMAPHORES        0U
 
 /* ------------------------------------------------------------------------------ */
 /* Config Asserts */
@@ -65,6 +66,14 @@ extern "C" {
 #error NYA_CFG_ENABLE_MUTEXES needs to be either 1U or 0U!
 #endif /* if (NYA_CFG_ENABLE_MUTEXES != 1U) && (NYA_CFG_ENABLE_MUTEXES != 0U) */
 #endif /* ifndef NYA_CFG_ENABLE_MUTEXES */
+
+#ifndef NYA_CFG_ENABLE_SEMAPHORES
+#error NYA_CFG_ENABLE_SEMAPHORES must be defined!
+#else /* ifndef NYA_CFG_ENABLE_SEMAPHORES */
+#if (NYA_CFG_ENABLE_SEMAPHORES != 1U) && (NYA_CFG_ENABLE_SEMAPHORES != 0U)
+#error NYA_CFG_ENABLE_SEMAPHORES needs to be either 1U or 0U!
+#endif /* if (NYA_CFG_ENABLE_SEMAPHORES != 1U) && (NYA_CFG_ENABLE_SEMAPHORES != 0U) */
+#endif /* ifndef NYA_CFG_ENABLE_SEMAPHORES */
 
 /* ------------------------------------------------------------------------------ */
 /* */

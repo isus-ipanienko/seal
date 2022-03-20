@@ -37,6 +37,10 @@ extern "C" {
 #define NYA_MUTEX_DEFINITIONS \
     NYA_MUTEX(NYA_MUTEX_ID_FOO)
 
+#define NYA_SEMAPHORE_DEFINITIONS       \
+    NYA_SEMAPHORE(NYA_SEMAPHORE_ID_FOO, \
+                  2)
+
 /* ------------------------------------------------------------------------------ */
 /* Kernel Event ID Enum */
 /* ------------------------------------------------------------------------------ */
@@ -48,6 +52,11 @@ typedef enum
     _id,
     NYA_MUTEX_DEFINITIONS
 #undef NYA_MUTEX
+#define NYA_SEMAPHORE(_id,    \
+                      _count) \
+    _id,
+    NYA_SEMAPHORE_DEFINITIONS
+#undef NYA_SEMAPHORE
     NYA_EVENT_ID_CNT,
 } nya_event_id_t;
 /* *INDENT-ON* */

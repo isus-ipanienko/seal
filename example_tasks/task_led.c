@@ -29,6 +29,12 @@ void led_entry(void *param)
 {
     NYA_UNUSED(param);
 
+    nya_semaphore_take(NYA_SEMAPHORE_ID_FOO,
+                       100);
+
+    nya_mutex_take(NYA_MUTEX_ID_FOO,
+                   100);
+
     while (1)
     {
         HAL_GPIO_TogglePin(

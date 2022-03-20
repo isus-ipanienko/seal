@@ -34,74 +34,66 @@
 /* ------------------------------------------------------------------------------ */
 
 /**
- * @brief This function replaces a task in it's wait_event queue according to it's new priority.
- * @note  It will also adjust the priority of the wait_event's holder, and it's waiting_event's holder, and so on...
- * @note  Nyartos assumes that priorities are always sorted as soon as they need to change. There are no unsorted lists.
- * @param [in] task - pointer to the task
- * @param [in] new_prio - new priority of the task
+ * @brief This function updates priorities of a mutex holder and each mutex it's waiting for.
+ * @param [in] holder - pointer to the holder
+ * @param [in] new_prio - new priority
  */
-static void _mutex_sort_waiting_lists(nya_tcb_t *task,
-                                      nya_u8_t new_prio);
+static void _mutex_update_priorities(nya_tcb_t *holder,
+                                     nya_u8_t new_prio);
+
+/**
+ * @brief   Gets the last highest priority task in a mutex queue. Tasks are always inserted at the beginning of a queue,
+ *          so the last task with a given priority is waiting for the longest time.
+ * @param   [in] event - pointer to a mutex struct
+ * @return  nya_tcb_t* - pointer to the task
+ */
+static nya_tcb_t* _get_event_high_prio_task(const nya_event_t *const event);
 
 /* ------------------------------------------------------------------------------ */
 /* Private Declarations */
 /* ------------------------------------------------------------------------------ */
 
-static void _mutex_sort_waiting_lists(nya_tcb_t *task,
-                                      nya_u8_t new_prio)
+static void _mutex_update_priorities(nya_tcb_t *holder,
+                                     nya_u8_t new_prio)
 {
-    nya_tcb_t *super_holder = NYA_NULL;
-    nya_tcb_t *waiting_holder = task;
-
-    do
+    while (holder->curr_prio != new_prio)
     {
-        super_holder = waiting_holder->wait_event->holder;
-
-        if (waiting_holder->wait_event->waiting_l != waiting_holder)
+        if (holder->state == NYA_TASK_READY)
         {
-            if (waiting_holder->prev_in_ready_q != NYA_NULL)
-            {
-                waiting_holder->prev_in_ready_q->next_in_ready_q = waiting_holder->next_in_ready_q;
-            }
+            nya_priority_remove(holder);
+            holder->curr_prio = new_prio;
+            nya_priority_push_first(holder);
+        }
+        else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
+        {
+            holder->curr_prio = new_prio;
+            new_prio = _get_event_high_prio_task(holder->wait_event)->curr_prio;
+            holder = holder->wait_event->holder;
+        }
+    }
+}
 
-            if (waiting_holder->next_in_ready_q != NYA_NULL)
-            {
-                waiting_holder->next_in_ready_q->prev_in_ready_q = waiting_holder->prev_in_ready_q;
-            }
+static nya_tcb_t* _get_event_high_prio_task(const nya_event_t *const event)
+{
+    if (event->waiting_l == NYA_NULL)
+    {
+        return NYA_NULL;
+    }
 
-            nya_tcb_t *place_in_waiting_l = waiting_holder->wait_event->waiting_l;
+    nya_tcb_t *high_prio_task = event->waiting_l;
+    nya_tcb_t *next_task = event->waiting_l->next_in_ready_q;
 
-            while ((place_in_waiting_l->next_in_ready_q != NYA_NULL) && (place_in_waiting_l->next_in_ready_q->curr_prio <=
-                                                                        waiting_holder->curr_prio))
-            {
-                place_in_waiting_l = place_in_waiting_l->next_in_ready_q;
-            }
-
-            waiting_holder->prev_in_ready_q = place_in_waiting_l;
-            waiting_holder->next_in_ready_q = place_in_waiting_l->next_in_ready_q;
-
-            if (place_in_waiting_l->next_in_ready_q != NYA_NULL)
-            {
-                place_in_waiting_l->next_in_ready_q->prev_in_ready_q = waiting_holder;
-            }
-
-            place_in_waiting_l->next_in_ready_q = waiting_holder;
+    while (next_task != NYA_NULL)
+    {
+        if (next_task->curr_prio <= high_prio_task->curr_prio)
+        {
+            high_prio_task = next_task;
         }
 
-        if (super_holder->curr_prio > new_prio)
-        {
-            if (super_holder->state == NYA_TASK_READY)
-            {
-                nya_priority_remove(super_holder);
-            }
+        next_task = next_task->next_in_ready_q;
+    }
 
-            super_holder->curr_prio = new_prio;
-            nya_priority_push_first(super_holder);
-        }
-
-        waiting_holder = super_holder;
-    } while ((super_holder->state == NYA_TASK_WAITING_FOR_EVENT) && (super_holder->wait_event->type ==
-                                                                     NYA_EVENT_MUTEX));
+    return high_prio_task;
 }
 
 /* ------------------------------------------------------------------------------ */
@@ -161,28 +153,12 @@ void nya_event_timeout(nya_tcb_t *task)
 
     if (task->wait_event->type == NYA_EVENT_MUTEX)
     {
-        nya_tcb_t *holder = task->wait_event->holder;
-        nya_u8_t holder_new_prio = holder->base_prio;
+        nya_tcb_t *high_prio_task = _get_event_high_prio_task(task->wait_event);
 
-        if ((task->wait_event->waiting_l != NYA_NULL) && (task->wait_event->waiting_l->curr_prio < holder_new_prio))
+        if (high_prio_task != NYA_NULL)
         {
-            holder_new_prio = task->wait_event->waiting_l->curr_prio;
-        }
-
-        if (holder->curr_prio != holder_new_prio)
-        {
-            if (holder->state == NYA_TASK_READY)
-            {
-                nya_priority_remove(holder);
-            }
-            else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
-            {
-                _mutex_sort_waiting_lists(holder,
-                                          holder_new_prio);
-            }
-
-            holder->curr_prio = holder_new_prio;
-            nya_priority_push_first(holder);
+            _mutex_update_priorities(task->wait_event->holder,
+                                     high_prio_task->curr_prio);
         }
     }
 
@@ -218,50 +194,13 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
 
         if (holder->curr_prio > nya_curr_task->curr_prio)
         {
-            if (holder->state == NYA_TASK_READY)
-            {
-                nya_priority_remove(holder);
-            }
-            else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
-            {
-                _mutex_sort_waiting_lists(holder,
-                                          nya_next_task->curr_prio);
-            }
-
-            holder->curr_prio = nya_curr_task->curr_prio;
-            nya_priority_push_first(holder);
-            nya_curr_task->prev_in_ready_q = NYA_NULL;
-            nya_curr_task->next_in_ready_q = os_ctx.event_l[id].waiting_l;
-            os_ctx.event_l[id].waiting_l = nya_curr_task;
+            _mutex_update_priorities(holder,
+                                     nya_curr_task->curr_prio);
         }
-        else
-        {
-            if (os_ctx.event_l[id].waiting_l == NYA_NULL)
-            {
-                nya_curr_task->prev_in_ready_q = NYA_NULL;
-                nya_curr_task->next_in_ready_q = NYA_NULL;
-                os_ctx.event_l[id].waiting_l = nya_curr_task;
-            }
-            else
-            {
-                nya_tcb_t *place_in_waiting_l = os_ctx.event_l[id].waiting_l;
 
-                while ((place_in_waiting_l->next_in_ready_q != NYA_NULL) &&
-                       (place_in_waiting_l->next_in_ready_q->curr_prio <= nya_curr_task->curr_prio))
-                {
-                    place_in_waiting_l = place_in_waiting_l->next_in_ready_q;
-                }
-
-                nya_curr_task->prev_in_ready_q = place_in_waiting_l;
-                nya_curr_task->next_in_ready_q = place_in_waiting_l->next_in_ready_q;
-
-                if (place_in_waiting_l->next_in_ready_q != NYA_NULL)
-                {
-                    place_in_waiting_l->next_in_ready_q->prev_in_ready_q = nya_curr_task;
-                    place_in_waiting_l->next_in_ready_q = nya_curr_task;
-                }
-            }
-        }
+        nya_curr_task->prev_in_ready_q = NYA_NULL;
+        nya_curr_task->next_in_ready_q = os_ctx.event_l[id].waiting_l;
+        os_ctx.event_l[id].waiting_l = nya_curr_task;
 
         NYA_EXIT_CRITICAL();
 
@@ -305,10 +244,27 @@ nya_error_t nya_mutex_give(nya_event_id_t id)
         nya_priority_push_first(nya_curr_task);
     }
 
-    if (os_ctx.event_l[id].waiting_l != NYA_NULL)
+    nya_tcb_t *high_prio_task = _get_event_high_prio_task(&os_ctx.event_l[id]);
+
+    if (high_prio_task != NYA_NULL)
     {
-        os_ctx.event_l[id].holder = os_ctx.event_l[id].waiting_l;
-        os_ctx.event_l[id].waiting_l = os_ctx.event_l[id].waiting_l->next_in_ready_q;
+        os_ctx.event_l[id].holder = high_prio_task;
+
+        if (os_ctx.event_l[id].waiting_l == os_ctx.event_l[id].holder)
+        {
+            os_ctx.event_l[id].waiting_l = os_ctx.event_l[id].waiting_l->next_in_ready_q;
+        }
+
+        if (os_ctx.event_l[id].holder->prev_in_ready_q != NYA_NULL)
+        {
+            os_ctx.event_l[id].holder->prev_in_ready_q->next_in_ready_q = os_ctx.event_l[id].holder->next_in_ready_q;
+        }
+
+        if (os_ctx.event_l[id].holder->next_in_ready_q != NYA_NULL)
+        {
+            os_ctx.event_l[id].holder->next_in_ready_q->prev_in_ready_q = os_ctx.event_l[id].holder->prev_in_ready_q;
+        }
+
         os_ctx.event_l[id].holder->state = NYA_TASK_READY;
         os_ctx.event_l[id].holder->delay = 0;
         nya_priority_push_last(os_ctx.event_l[id].holder);
@@ -357,10 +313,12 @@ nya_error_t nya_semaphore_take(nya_event_id_t id,
         else
         {
             nya_tcb_t *last = os_ctx.event_l[id].waiting_l;
+
             while (last->next_in_ready_q != NYA_NULL)
             {
                 last = last->next_in_ready_q;
             }
+
             last->next_in_ready_q = nya_curr_task;
             nya_curr_task->prev_in_ready_q = last;
             nya_curr_task->next_in_ready_q = NYA_NULL;

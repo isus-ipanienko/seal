@@ -60,9 +60,14 @@ static void _mutex_update_priorities(nya_tcb_t *holder,
     {
         if (holder->state == NYA_TASK_READY)
         {
-            nya_priority_remove(holder);
+            nya_queue_remove(holder, &os_ctx.priorities[holder->curr_prio]);
+            if (os_ctx.priorities[holder->curr_prio].first == NYA_NULL)
+            {
+                NYA_PRIORITY_UNREADY(holder->curr_prio);
+            };
             holder->curr_prio = new_prio;
-            nya_priority_push_first(holder);
+            nya_queue_push(holder, &os_ctx.priorities[holder->curr_prio]);
+            NYA_PRIORITY_READY(holder->curr_prio);
         }
         else if (holder->state == NYA_TASK_WAITING_FOR_EVENT)
         {
@@ -75,13 +80,13 @@ static void _mutex_update_priorities(nya_tcb_t *holder,
 
 static nya_tcb_t* _get_event_high_prio_task(const nya_event_t *const event)
 {
-    if (event->waiting_l == NYA_NULL)
+    if (event->waiting_queue == NYA_NULL)
     {
         return NYA_NULL;
     }
 
-    nya_tcb_t *high_prio_task = event->waiting_l;
-    nya_tcb_t *next_task = event->waiting_l->next_in_ready_q;
+    nya_tcb_t *high_prio_task = event->waiting_queue;
+    nya_tcb_t *next_task = event->waiting_queue->next;
 
     while (next_task != NYA_NULL)
     {
@@ -90,7 +95,7 @@ static nya_tcb_t* _get_event_high_prio_task(const nya_event_t *const event)
             high_prio_task = next_task;
         }
 
-        next_task = next_task->next_in_ready_q;
+        next_task = next_task->next;
     }
 
     return high_prio_task;
@@ -104,14 +109,14 @@ void nya_event_init(nya_event_id_t id,
                     nya_event_type_t type,
                     nya_u32_t count)
 {
-    if (os_ctx.event_l[id].type == NYA_EVENT_BOTTOM)
+    if (os_ctx.events[id].type == NYA_EVENT_UNINITIALIZED)
     {
-        os_ctx.event_l[id].type = type;
+        os_ctx.events[id].type = type;
 
         switch (type)
         {
         case NYA_EVENT_SEMAPHORE:
-            os_ctx.event_l[id].count = count;
+            os_ctx.events[id].count = count;
             break;
         default:
             break;
@@ -128,7 +133,7 @@ void nya_event_timeout(nya_tcb_t *task)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if ((task->wait_event->type != NYA_EVENT_MUTEX) && (task->wait_event->type != NYA_EVENT_SEMAPHORE))
+    if ((task->wait_event->type == NYA_EVENT_UNINITIALIZED) || (task->wait_event->type >= NYA_EVENT_TOP))
     {
         NYA_EXIT_CRITICAL();
         nya_core_panic();
@@ -136,19 +141,19 @@ void nya_event_timeout(nya_tcb_t *task)
 
     task->wait_return = NYA_WAIT_RET_TIMEOUT;
 
-    if (task->wait_event->waiting_l == task)
+    if (task->wait_event->waiting_queue == task)
     {
-        task->wait_event->waiting_l = task->next_in_ready_q;
+        task->wait_event->waiting_queue = task->next;
     }
 
-    if (task->prev_in_ready_q != NYA_NULL)
+    if (task->prev != NYA_NULL)
     {
-        task->prev_in_ready_q->next_in_ready_q = task->next_in_ready_q;
+        task->prev->next = task->next;
     }
 
-    if (task->next_in_ready_q != NYA_NULL)
+    if (task->next != NYA_NULL)
     {
-        task->next_in_ready_q->prev_in_ready_q = task->prev_in_ready_q;
+        task->next->prev = task->prev;
     }
 
     if (task->wait_event->type == NYA_EVENT_MUTEX)
@@ -175,7 +180,7 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if (os_ctx.event_l[id].type != NYA_EVENT_MUTEX)
+    if (os_ctx.events[id].type != NYA_EVENT_MUTEX)
     {
         NYA_EXIT_CRITICAL();
 
@@ -183,24 +188,28 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
     }
 
     nya_curr_task->wait_return = NYA_WAIT_RET_OK;
-    nya_tcb_t *holder = os_ctx.event_l[id].holder;
+    nya_tcb_t *holder = os_ctx.events[id].holder;
 
     if (holder != NYA_NULL)
     {
         nya_curr_task->state = NYA_TASK_WAITING_FOR_EVENT;
         nya_curr_task->delay = timeout;
-        nya_curr_task->wait_event = &os_ctx.event_l[id];
-        nya_priority_pop(nya_curr_task);
+        nya_curr_task->wait_event = &os_ctx.events[id];
+        nya_queue_pop(&os_ctx.priorities[nya_curr_task->curr_prio]);
+        if (os_ctx.priorities[nya_curr_task->curr_prio].first == NYA_NULL)
+        {
+            NYA_PRIORITY_UNREADY(nya_curr_task->curr_prio);
+        };
 
-        if (holder->curr_prio > nya_curr_task->curr_prio)
+        if (holder->curr_prio < nya_curr_task->curr_prio)
         {
             _mutex_update_priorities(holder,
                                      nya_curr_task->curr_prio);
         }
 
-        nya_curr_task->prev_in_ready_q = NYA_NULL;
-        nya_curr_task->next_in_ready_q = os_ctx.event_l[id].waiting_l;
-        os_ctx.event_l[id].waiting_l = nya_curr_task;
+        nya_curr_task->prev = NYA_NULL;
+        nya_curr_task->next = os_ctx.events[id].waiting_queue;
+        os_ctx.events[id].waiting_queue = nya_curr_task;
 
         NYA_EXIT_CRITICAL();
 
@@ -208,7 +217,7 @@ nya_error_t nya_mutex_take(nya_event_id_t id,
     }
     else
     {
-        os_ctx.event_l[id].holder = nya_curr_task;
+        os_ctx.events[id].holder = nya_curr_task;
         NYA_EXIT_CRITICAL();
     }
 
@@ -230,7 +239,7 @@ nya_error_t nya_mutex_give(nya_event_id_t id)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if (os_ctx.event_l[id].type != NYA_EVENT_MUTEX)
+    if (os_ctx.events[id].type != NYA_EVENT_MUTEX)
     {
         NYA_EXIT_CRITICAL();
 
@@ -239,35 +248,41 @@ nya_error_t nya_mutex_give(nya_event_id_t id)
 
     if (nya_curr_task->curr_prio != nya_curr_task->base_prio)
     {
-        nya_priority_pop(nya_curr_task);
+        nya_queue_remove(nya_curr_task, &os_ctx.priorities[nya_curr_task->curr_prio]);
+        if (os_ctx.priorities[nya_curr_task->curr_prio].first == NYA_NULL)
+        {
+            NYA_PRIORITY_UNREADY(nya_curr_task->curr_prio);
+        };
         nya_curr_task->curr_prio = nya_curr_task->base_prio;
-        nya_priority_push_first(nya_curr_task);
+        nya_queue_push(nya_curr_task, &os_ctx.priorities[nya_curr_task->curr_prio]);
+        NYA_PRIORITY_READY(nya_curr_task->curr_prio);
     }
 
-    nya_tcb_t *high_prio_task = _get_event_high_prio_task(&os_ctx.event_l[id]);
+    nya_tcb_t *high_prio_task = _get_event_high_prio_task(&os_ctx.events[id]);
 
     if (high_prio_task != NYA_NULL)
     {
-        os_ctx.event_l[id].holder = high_prio_task;
+        os_ctx.events[id].holder = high_prio_task;
 
-        if (os_ctx.event_l[id].waiting_l == os_ctx.event_l[id].holder)
+        if (os_ctx.events[id].waiting_queue == os_ctx.events[id].holder)
         {
-            os_ctx.event_l[id].waiting_l = os_ctx.event_l[id].waiting_l->next_in_ready_q;
+            os_ctx.events[id].waiting_queue = os_ctx.events[id].waiting_queue->next;
         }
 
-        if (os_ctx.event_l[id].holder->prev_in_ready_q != NYA_NULL)
+        if (os_ctx.events[id].holder->prev != NYA_NULL)
         {
-            os_ctx.event_l[id].holder->prev_in_ready_q->next_in_ready_q = os_ctx.event_l[id].holder->next_in_ready_q;
+            os_ctx.events[id].holder->prev->next = os_ctx.events[id].holder->next;
         }
 
-        if (os_ctx.event_l[id].holder->next_in_ready_q != NYA_NULL)
+        if (os_ctx.events[id].holder->next != NYA_NULL)
         {
-            os_ctx.event_l[id].holder->next_in_ready_q->prev_in_ready_q = os_ctx.event_l[id].holder->prev_in_ready_q;
+            os_ctx.events[id].holder->next->prev = os_ctx.events[id].holder->prev;
         }
 
-        os_ctx.event_l[id].holder->state = NYA_TASK_READY;
-        os_ctx.event_l[id].holder->delay = 0;
-        nya_priority_push_last(os_ctx.event_l[id].holder);
+        os_ctx.events[id].holder->state = NYA_TASK_READY;
+        os_ctx.events[id].holder->delay = 0;
+        nya_queue_push(os_ctx.events[id].holder, &os_ctx.priorities[os_ctx.events[id].holder->curr_prio]);
+        NYA_PRIORITY_READY(os_ctx.events[id].holder->curr_prio);
 
         NYA_EXIT_CRITICAL();
 
@@ -275,7 +290,7 @@ nya_error_t nya_mutex_give(nya_event_id_t id)
     }
     else
     {
-        os_ctx.event_l[id].holder = NYA_NULL;
+        os_ctx.events[id].holder = NYA_NULL;
         NYA_EXIT_CRITICAL();
     }
 
@@ -288,7 +303,7 @@ nya_error_t nya_semaphore_take(nya_event_id_t id,
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if (os_ctx.event_l[id].type != NYA_EVENT_SEMAPHORE)
+    if (os_ctx.events[id].type != NYA_EVENT_SEMAPHORE)
     {
         NYA_EXIT_CRITICAL();
 
@@ -297,31 +312,35 @@ nya_error_t nya_semaphore_take(nya_event_id_t id,
 
     nya_curr_task->wait_return = NYA_WAIT_RET_OK;
 
-    if (os_ctx.event_l[id].count == 0)
+    if (os_ctx.events[id].count == 0)
     {
         nya_curr_task->state = NYA_TASK_WAITING_FOR_EVENT;
         nya_curr_task->delay = timeout;
-        nya_curr_task->wait_event = &os_ctx.event_l[id];
-        nya_priority_pop(nya_curr_task);
-
-        if (os_ctx.event_l[id].waiting_l == NYA_NULL)
+        nya_curr_task->wait_event = &os_ctx.events[id];
+        nya_queue_pop(&os_ctx.priorities[nya_curr_task->curr_prio]);
+        if (os_ctx.priorities[nya_curr_task->curr_prio].first == NYA_NULL)
         {
-            os_ctx.event_l[id].waiting_l = nya_curr_task;
-            nya_curr_task->prev_in_ready_q = NYA_NULL;
-            nya_curr_task->next_in_ready_q = NYA_NULL;
+            NYA_PRIORITY_UNREADY(nya_curr_task->curr_prio);
+        };
+
+        if (os_ctx.events[id].waiting_queue == NYA_NULL)
+        {
+            os_ctx.events[id].waiting_queue = nya_curr_task;
+            nya_curr_task->prev = NYA_NULL;
+            nya_curr_task->next = NYA_NULL;
         }
         else
         {
-            nya_tcb_t *last = os_ctx.event_l[id].waiting_l;
+            nya_tcb_t *last = os_ctx.events[id].waiting_queue;
 
-            while (last->next_in_ready_q != NYA_NULL)
+            while (last->next != NYA_NULL)
             {
-                last = last->next_in_ready_q;
+                last = last->next;
             }
 
-            last->next_in_ready_q = nya_curr_task;
-            nya_curr_task->prev_in_ready_q = last;
-            nya_curr_task->next_in_ready_q = NYA_NULL;
+            last->next = nya_curr_task;
+            nya_curr_task->prev = last;
+            nya_curr_task->next = NYA_NULL;
         }
 
         NYA_EXIT_CRITICAL();
@@ -330,7 +349,7 @@ nya_error_t nya_semaphore_take(nya_event_id_t id,
     }
     else
     {
-        os_ctx.event_l[id].count--;
+        os_ctx.events[id].count--;
         NYA_EXIT_CRITICAL();
     }
 
@@ -352,21 +371,22 @@ nya_error_t nya_semaphore_give(nya_event_id_t id)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if (os_ctx.event_l[id].type != NYA_EVENT_SEMAPHORE)
+    if (os_ctx.events[id].type != NYA_EVENT_SEMAPHORE)
     {
         NYA_EXIT_CRITICAL();
 
         return NYA_WRONG_EVENT;
     }
 
-    os_ctx.event_l[id].count++;
+    os_ctx.events[id].count++;
 
-    if (os_ctx.event_l[id].waiting_l != NYA_NULL)
+    if (os_ctx.events[id].waiting_queue != NYA_NULL)
     {
-        os_ctx.event_l[id].waiting_l->state = NYA_TASK_READY;
-        os_ctx.event_l[id].waiting_l->delay = 0;
-        os_ctx.event_l[id].waiting_l = os_ctx.event_l[id].waiting_l->next_in_ready_q;
-        nya_priority_push_last(os_ctx.event_l[id].waiting_l);
+        os_ctx.events[id].waiting_queue->state = NYA_TASK_READY;
+        os_ctx.events[id].waiting_queue->delay = 0;
+        os_ctx.events[id].waiting_queue = os_ctx.events[id].waiting_queue->next;
+        nya_queue_push(os_ctx.events[id].waiting_queue, &os_ctx.priorities[os_ctx.events[id].waiting_queue->curr_prio]);
+        NYA_PRIORITY_READY(os_ctx.events[id].waiting_queue->curr_prio);
 
         NYA_EXIT_CRITICAL();
 

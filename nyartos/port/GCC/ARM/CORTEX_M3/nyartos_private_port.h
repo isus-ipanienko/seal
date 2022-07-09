@@ -58,6 +58,14 @@ void nya_port_context_switch(void);
 #define NYA_PORT_BASEPRI_VAL                 (NYA_PORT_MAX_SYSCALL_INT_PRIORITY << NYA_PORT_NVIC_OFFSET)
 
 /* ------------------------------------------------------------------------------ */
+/* Priority resolving */
+/* ------------------------------------------------------------------------------ */
+
+#define NYA_PRIORITY_READY(_priority)           do { os_ctx.ready_priorities |= (1 << (_priority)); } while (0)
+#define NYA_PRIORITY_UNREADY(_priority)         do { os_ctx.ready_priorities &= ~(1 << (_priority)); } while (0)
+#define NYA_GET_HIGHEST_PRIORITY(_priorities)   (31UL - __builtin_clz(_priorities))
+
+/* ------------------------------------------------------------------------------ */
 /* */
 /* ------------------------------------------------------------------------------ */
 

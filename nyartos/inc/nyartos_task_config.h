@@ -80,20 +80,20 @@ typedef enum
  *           _entry_func_param) - Pointer to the entry function parameter.
  */
 #define NYA_TASK_DEFINITIONS    \
-    NYA_TASK(NYA_TASK_ID_LED,   \
+    NYA_TASK(NYA_TASK_ID_IDLE,  \
              0,                 \
+             512,               \
+             idle_entry,        \
+             NYA_NULL)          \
+    NYA_TASK(NYA_TASK_ID_LED,   \
+             1,                 \
              512,               \
              led_entry,         \
              NYA_NULL)          \
     NYA_TASK(NYA_TASK_ID_PRINT, \
-             0,                 \
-             512,               \
-             print_entry,       \
-             NYA_NULL)          \
-    NYA_TASK(NYA_TASK_ID_IDLE,  \
              1,                 \
              512,               \
-             idle_entry,        \
+             print_entry,       \
              NYA_NULL)
 
 /* ------------------------------------------------------------------------------ */
@@ -137,7 +137,7 @@ typedef enum
 
 /* *INDENT-OFF* */
 /**
- * @brief This enum is only used to calculate the amount of priority levels.
+ * @brief This enum is used to calculate the amount of priority levels.
  */
 typedef enum
 {

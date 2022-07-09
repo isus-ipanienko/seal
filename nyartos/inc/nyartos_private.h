@@ -77,7 +77,7 @@ typedef enum
 
 typedef enum
 {
-    NYA_EVENT_BOTTOM = 0,
+    NYA_EVENT_UNINITIALIZED = 0,
     NYA_EVENT_MUTEX,
     NYA_EVENT_SEMAPHORE,
     NYA_EVENT_TOP,
@@ -90,7 +90,7 @@ typedef struct
 {
     nya_event_type_t type;
     struct nya_tcb_t *holder;
-    struct nya_tcb_t *waiting_l;
+    struct nya_tcb_t *waiting_queue;
     nya_size_t count;
 } nya_event_t;
 
@@ -108,10 +108,8 @@ typedef struct nya_tcb_t
     nya_u8_t base_prio;                /**< Base priority */
     nya_u8_t curr_prio;                /**< Highest inherited priority */
 
-    struct nya_tcb_t *next_in_delay_q; /**< Next task in delay queue */
-    struct nya_tcb_t *prev_in_delay_q; /**< Previous task in delay queue */
-    struct nya_tcb_t *next_in_ready_q; /**< Next task in priority/event queue */
-    struct nya_tcb_t *prev_in_ready_q; /**< Previous task in priority/event queue */
+    struct nya_tcb_t *next;            /**< Next task in event queue */
+    struct nya_tcb_t *prev;            /**< Previous task in event queue */
     nya_event_t *wait_event;           /**< The event that this task is waiting for */
     nya_wait_ret_t wait_return;        /**< This indicates if task timed out while waiting for something */
 
@@ -126,14 +124,13 @@ typedef struct nya_tcb_t
 } nya_tcb_t;
 
 /**
- * @brief Stores information about a single priority level.
+ * @brief TODO
  */
 typedef struct
 {
-    nya_tcb_t *first; /**< First task in this priority. */
-    nya_tcb_t *last;  /**< Last task in this priority. */
-    nya_u8_t mode;    /**< mode = 1 -> FIFO */
-} nya_prioq_t;
+    nya_tcb_t *first; /**< First task in this queue. */
+    nya_tcb_t *last;  /**< Last task in this queue. */
+} nya_queue_t;
 
 /**
  * @brief System context type.
@@ -142,19 +139,12 @@ typedef struct
 {
     nya_bool_t is_running;
 
-    nya_tcb_t tcb_l[NYA_TASK_ID_CNT];
-    nya_event_t event_l[NYA_EVENT_ID_CNT];
-    nya_prioq_t prio_l[NYA_PRIORITY_LEVEL_CNT];
+    nya_tcb_t tcbs[NYA_TASK_ID_CNT];
+    nya_event_t events[NYA_EVENT_ID_CNT];
+    nya_queue_t priorities[NYA_PRIORITY_LEVEL_CNT];
 
-    /* TODO: add CLZ priority resolving if no more than 32 priorities exist */
-    nya_u8_t prio_grp_rdy[8];
-    nya_u8_t prio_grp_cluster_rdy;
-
+    nya_u32_t ready_priorities;
     nya_u8_t isr_nesting_cnt;
-
-    const nya_u8_t resolve_prio_lkp[256];
-    const nya_u8_t prio_indx_lkp[64];
-    const nya_u8_t prio_mask_lkp[64];
 } nya_os_ctx_t;
 
 /* ------------------------------------------------------------------------------ */
@@ -200,38 +190,28 @@ void nya_event_init(nya_event_id_t id,
                     nya_u32_t count);
 
 /**
- * @brief Timeouts a task and removes it from the mutex waiting list.
+ * @brief Times out a task and removes it from an event waiting list.
  * @param [in] task - timed out task
  */
 void nya_event_timeout(nya_tcb_t *task);
 
 /**
- * @brief   Pops a priority queue.
- * @note    Doesn't support priority inheritance, yet.
- * @note    Always call this from within a critical section.
+ * @brief   Pushes a task to a queue.
+ * @note    Call this from within a critical section.
  */
-void nya_priority_pop(nya_tcb_t *task);
+void nya_queue_push(nya_tcb_t *task, nya_queue_t *queue);
 
 /**
- * @brief   Pops a priority queue.
- * @note    Doesn't support priority inheritance, yet.
- * @note    Always call this from within a critical section.
+ * @brief   Pops a queue.
+ * @note    Call this from within a critical section.
  */
-void nya_priority_remove(nya_tcb_t *task);
+void nya_queue_pop(nya_queue_t *queue);
 
 /**
- * @brief   Pushes a task to a priority queue.
- * @note    Doesn't support priority inheritance, yet.
- * @note    Always call this from within a critical section.
+ * @brief   Removes a task from a queue.
+ * @note    Call this from within a critical section.
  */
-void nya_priority_push_first(nya_tcb_t *task);
-
-/**
- * @brief   Pushes a task to a priority queue.
- * @note    Doesn't support priority inheritance, yet.
- * @note    Always call this from within a critical section.
- */
-void nya_priority_push_last(nya_tcb_t *task);
+void nya_queue_remove(nya_tcb_t *task, nya_queue_t *queue);
 
 /**
  * @brief   Initializes a task's stack.

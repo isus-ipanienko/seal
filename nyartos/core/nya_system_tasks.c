@@ -35,8 +35,7 @@
 
 /**
  * @brief       This is the system idle task.
- * @warning     Delaying this task in any way will cause a crash. 
- *              Nyartos expects it will be ready to run at any time.
+ * @warning     This task needs to be ready to run at all times.
  */
 void idle_entry(void *param)
 {

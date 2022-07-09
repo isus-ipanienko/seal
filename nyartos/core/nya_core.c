@@ -44,55 +44,11 @@ nya_tcb_t *volatile nya_next_task = NYA_NULL;
                  _entry_func,       \
                  _entry_func_param) \
     static nya_stack_t nya_stack_##_id[NYA_PORT_BYTES_TO_SECTORS(_stack_size)];
-    NYA_TASK_DEFINITIONS
+NYA_TASK_DEFINITIONS
 #undef NYA_TASK
-
 /* *INDENT-ON* */
 
-nya_os_ctx_t os_ctx =
-{
-    .resolve_prio_lkp =
-    {
-        0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-        4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    },
-    .prio_indx_lkp    =
-    {
-        0, 0, 0, 0, 0, 0, 0, 0,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        2, 2, 2, 2, 2, 2, 2, 2,
-        3, 3, 3, 3, 3, 3, 3, 3,
-        4, 4, 4, 4, 4, 4, 4, 4,
-        5, 5, 5, 5, 5, 5, 5, 5,
-        6, 6, 6, 6, 6, 6, 6, 6,
-        7, 7, 7, 7, 7, 7, 7, 7
-    },
-    .prio_mask_lkp    =
-    {
-        1, 2, 4, 8, 16, 32, 64, 128,
-        1, 2, 4, 8, 16, 32, 64, 128,
-        1, 2, 4, 8, 16, 32, 64, 128,
-        1, 2, 4, 8, 16, 32, 64, 128,
-        1, 2, 4, 8, 16, 32, 64, 128,
-        1, 2, 4, 8, 16, 32, 64, 128,
-        1, 2, 4, 8, 16, 32, 64, 128,
-        1, 2, 4, 8, 16, 32, 64, 128
-    }
-};
+nya_os_ctx_t os_ctx = {0};
 
 /* ------------------------------------------------------------------------------ */
 /* Private Prototypes */
@@ -129,34 +85,31 @@ static void _init_tcb(nya_size_t id,
                       nya_task_func_t entry_func,
                       void *entry_func_param)
 {
-    os_ctx.tcb_l[id].tid = id;
-    os_ctx.tcb_l[id].base_prio = base_prio;
-    os_ctx.tcb_l[id].curr_prio = base_prio;
-    os_ctx.tcb_l[id].stack_ptr = nya_port_init_stack(entry_func,
-                                                     stack_base,
-                                                     stack_size,
-                                                     entry_func_param);
+    os_ctx.tcbs[id].tid = id;
+    os_ctx.tcbs[id].base_prio = base_prio;
+    os_ctx.tcbs[id].curr_prio = base_prio;
+    os_ctx.tcbs[id].stack_ptr = nya_port_init_stack(entry_func,
+                                                    stack_base,
+                                                    stack_size,
+                                                    entry_func_param);
 #if NYA_CFG_ENABLE_STATS
-    os_ctx.tcb_l[id].stack_size = stack_size;
-    os_ctx.tcb_l[id].stack_end = &stack_base[stack_size - 1];
+    os_ctx.tcbs[id].stack_size = stack_size;
+    os_ctx.tcbs[id].stack_end = &stack_base[stack_size - 1];
 #endif /* if NYA_CFG_ENABLE_STATS */
-
-    nya_priority_push_last(&os_ctx.tcb_l[id]);
-    os_ctx.tcb_l[id].state = NYA_TASK_READY;
+    nya_queue_push(&os_ctx.tcbs[id], &os_ctx.priorities[base_prio]);
+    NYA_PRIORITY_READY(base_prio);
+    os_ctx.tcbs[id].state = NYA_TASK_READY;
 }
 
 nya_bool_t _set_next_task(void)
 {
     if (os_ctx.isr_nesting_cnt == 0)
     {
-        nya_u8_t highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_cluster_rdy];
+        nya_u8_t highest_priority = NYA_GET_HIGHEST_PRIORITY(os_ctx.ready_priorities);
 
-        highest_priority = os_ctx.resolve_prio_lkp[os_ctx.prio_grp_rdy[highest_priority]] +
-                           (highest_priority * 8);
-
-        if (os_ctx.prio_l[highest_priority].first != nya_next_task)
+        if (os_ctx.priorities[highest_priority].first != nya_next_task)
         {
-            nya_next_task = os_ctx.prio_l[highest_priority].first;
+            nya_next_task = os_ctx.priorities[highest_priority].first;
 
             return NYA_TRUE;
         }
@@ -205,26 +158,86 @@ void nya_core_systick(void)
     /* TODO: create a waiting list with delayed tasks */
     for (nya_size_t id = 0; id < NYA_TASK_ID_CNT; id++)
     {
-        if (os_ctx.tcb_l[id].delay)
+        if (os_ctx.tcbs[id].delay)
         {
-            if (--os_ctx.tcb_l[id].delay == 0)
+            if (--os_ctx.tcbs[id].delay == 0)
             {
-                if (os_ctx.tcb_l[id].state == NYA_TASK_WAITING_FOR_EVENT)
+                if (os_ctx.tcbs[id].state == NYA_TASK_WAITING_FOR_EVENT)
                 {
-                    nya_event_timeout(&os_ctx.tcb_l[id]);
+                    nya_event_timeout(&os_ctx.tcbs[id]);
                 }
-                else if (os_ctx.tcb_l[id].state != NYA_TASK_ASLEEP)
+                else if (os_ctx.tcbs[id].state != NYA_TASK_ASLEEP)
                 {
                     nya_core_panic();
                 }
 
-                nya_priority_push_last(&os_ctx.tcb_l[id]);
-                os_ctx.tcb_l[id].state = NYA_TASK_READY;
+                nya_queue_push(&os_ctx.tcbs[id], &os_ctx.priorities[os_ctx.tcbs[id].curr_prio]);
+                NYA_PRIORITY_READY(os_ctx.tcbs[id].curr_prio);
+                os_ctx.tcbs[id].state = NYA_TASK_READY;
             }
         }
     }
 
     NYA_EXIT_CRITICAL();
+}
+
+void nya_queue_push(nya_tcb_t *task, nya_queue_t *queue)
+{
+    if (queue->first == NYA_NULL)
+    {
+        task->prev = NYA_NULL;
+        task->next = NYA_NULL;
+        queue->first = task;
+        queue->last = task;
+    }
+    else
+    {
+        task->prev = queue->last;
+        task->next = NYA_NULL;
+        queue->last->next = task;
+        queue->last = task;
+    }
+}
+
+void nya_queue_pop(nya_queue_t *queue)
+{
+    if (queue->first == NYA_NULL)
+    {
+        nya_core_panic();
+    }
+
+    if (queue->first->next == NYA_NULL)
+    {
+        queue->first = NYA_NULL;
+        queue->last = NYA_NULL;
+    }
+    else
+    {
+        queue->first = queue->first->next;
+    }
+}
+
+void nya_queue_remove(nya_tcb_t *task, nya_queue_t *queue)
+{
+    if (queue->first == task)
+    {
+        queue->first = task->next;
+    }
+
+    if (queue->last == task)
+    {
+        queue->last = task->prev;
+    }
+
+    if (task->prev != NYA_NULL)
+    {
+        task->prev->next = task->next;
+    }
+
+    if (task->next != NYA_NULL)
+    {
+        task->next->prev = task->prev;
+    }
 }
 
 /* ------------------------------------------------------------------------------ */
@@ -272,7 +285,11 @@ void nya_sleep(nya_size_t ticks)
 
     nya_curr_task->state = NYA_TASK_ASLEEP;
     nya_curr_task->delay = ticks;
-    nya_priority_pop(nya_curr_task);
+    nya_queue_pop(&os_ctx.priorities[nya_curr_task->curr_prio]);
+    if (os_ctx.priorities[nya_curr_task->curr_prio].first == NYA_NULL)
+    {
+        NYA_PRIORITY_UNREADY(nya_curr_task->curr_prio);
+    };
 
     NYA_EXIT_CRITICAL();
 

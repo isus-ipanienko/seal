@@ -42,32 +42,12 @@ extern "C" {
                   2)
 
 /* ------------------------------------------------------------------------------ */
-/* Kernel Event ID Enum */
-/* ------------------------------------------------------------------------------ */
-
-/* *INDENT-OFF* */
-typedef enum
-{
-#define NYA_MUTEX(_id) \
-    _id,
-    NYA_MUTEX_DEFINITIONS
-#undef NYA_MUTEX
-#define NYA_SEMAPHORE(_id,    \
-                      _count) \
-    _id,
-    NYA_SEMAPHORE_DEFINITIONS
-#undef NYA_SEMAPHORE
-    NYA_EVENT_ID_CNT,
-} nya_event_id_t;
-/* *INDENT-ON* */
-
-/* ------------------------------------------------------------------------------ */
 /* Task Definitions */
 /* ------------------------------------------------------------------------------ */
 
 /**
- * @brief   This macro is used to create all structures required by the tasks specified here.
- * @warning The task with the highest priority should appear last on the list. Else, the
+ * @brief   This macro is used to create all structures required by the tasks.
+ * @warning The task with the highest priority should appear last on the list. Otherwise, the
  *          number of allocated priorities will be incorrect. Alternatively, you may remove
  *          the definition of @c nya_priority_level_t and define NYA_PRIORITY_LEVEL_CNT yourself.
  *          #define NYA_PRIORITY_LEVEL_CNT (max_priority + 1)
@@ -95,6 +75,26 @@ typedef enum
              512,               \
              print_entry,       \
              NYA_NULL)
+
+/* ------------------------------------------------------------------------------ */
+/* Kernel Event ID Enum */
+/* ------------------------------------------------------------------------------ */
+
+/* *INDENT-OFF* */
+typedef enum
+{
+#define NYA_MUTEX(_id) \
+    _id,
+    NYA_MUTEX_DEFINITIONS
+#undef NYA_MUTEX
+#define NYA_SEMAPHORE(_id,    \
+                      _count) \
+    _id,
+    NYA_SEMAPHORE_DEFINITIONS
+#undef NYA_SEMAPHORE
+    NYA_EVENT_ID_CNT,
+} nya_event_id_t;
+/* *INDENT-ON* */
 
 /* ------------------------------------------------------------------------------ */
 /* Entry Function Prototypes */

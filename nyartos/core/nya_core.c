@@ -119,25 +119,25 @@ nya_bool_t _set_next_task(void)
 }
 
 /* ------------------------------------------------------------------------------ */
-/* Global Declarations */
+/* Internal System Declarations */
 /* ------------------------------------------------------------------------------ */
 
-void nya_core_panic(void)
+void nya_panic(nya_error_t reason)
 {
     NYA_DISABLE_INTERRUPTS();
-    nya_panic_hook();
+    nya_panic_hook(reason);
 
     while (1)
     {}
 }
 
-void nya_core_task_exit(void)
+void nya_task_exit(void)
 {
     nya_task_exit_hook();
-    nya_core_panic();
+    nya_panic(NYA_TASK_EXITED);
 }
 
-void nya_core_schedule(void)
+void nya_schedule(void)
 {
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
@@ -150,7 +150,7 @@ void nya_core_schedule(void)
     NYA_EXIT_CRITICAL();
 }
 
-void nya_core_systick(void)
+void nya_systick(void)
 {
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
@@ -162,13 +162,17 @@ void nya_core_systick(void)
         {
             if (--os_ctx.tcbs[id].delay == 0)
             {
-                if (os_ctx.tcbs[id].state == NYA_TASK_WAITING_FOR_EVENT)
+                switch (os_ctx.tcbs[id].state)
                 {
+                case NYA_TASK_WAITING_FOR_EVENT:
                     nya_event_timeout(&os_ctx.tcbs[id]);
-                }
-                else if (os_ctx.tcbs[id].state != NYA_TASK_ASLEEP)
-                {
-                    nya_core_panic();
+                    break;
+
+                case NYA_TASK_ASLEEP:
+                    break;
+
+                default:
+                    nya_panic(NYA_ERROR);
                 }
 
                 nya_queue_push(&os_ctx.tcbs[id], &os_ctx.priorities[os_ctx.tcbs[id].curr_prio]);
@@ -183,6 +187,8 @@ void nya_core_systick(void)
 
 void nya_queue_push(nya_tcb_t *task, nya_queue_t *queue)
 {
+    NYA_ASSERT((task != NYA_NULL) && (queue != NYA_NULL), NYA_NULL_PARAM);
+
     if (queue->first == NYA_NULL)
     {
         task->prev = NYA_NULL;
@@ -201,10 +207,7 @@ void nya_queue_push(nya_tcb_t *task, nya_queue_t *queue)
 
 void nya_queue_pop(nya_queue_t *queue)
 {
-    if (queue->first == NYA_NULL)
-    {
-        nya_core_panic();
-    }
+    NYA_ASSERT((queue->first != NYA_NULL), NYA_NULL_PARAM);
 
     if (queue->first->next == NYA_NULL)
     {
@@ -240,6 +243,20 @@ void nya_queue_remove(nya_tcb_t *task, nya_queue_t *queue)
     }
 }
 
+void nya_update_priority(nya_tcb_t *task, nya_u8_t new_prio)
+{
+    if (task->curr_prio == new_prio)
+    {
+        return;
+    }
+
+    nya_queue_remove(task, &os_ctx.priorities[task->curr_prio]);
+    NYA_PRIORITY_UNREADY(task->curr_prio);
+    task->curr_prio = new_prio;
+    nya_queue_push(task, &os_ctx.priorities[task->curr_prio]);
+    NYA_PRIORITY_READY(task->curr_prio);
+}
+
 /* ------------------------------------------------------------------------------ */
 /* API Declarations */
 /* ------------------------------------------------------------------------------ */
@@ -249,10 +266,7 @@ void nya_enter_isr(void)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if (os_ctx.isr_nesting_cnt == 255)
-    {
-        nya_core_panic();
-    }
+    NYA_ASSERT((os_ctx.isr_nesting_cnt != 255), NYA_ISR_OVERFLOW);
 
     os_ctx.isr_nesting_cnt++;
     NYA_EXIT_CRITICAL();
@@ -263,10 +277,7 @@ void nya_exit_isr(void)
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
 
-    if (os_ctx.isr_nesting_cnt == 0)
-    {
-        nya_core_panic();
-    }
+    NYA_ASSERT((os_ctx.isr_nesting_cnt != 0), NYA_ISR_UNDERFLOW);
 
     os_ctx.isr_nesting_cnt--;
 
@@ -282,18 +293,12 @@ void nya_sleep(nya_size_t ticks)
 {
     NYA_DECLARE_CRITICAL();
     NYA_ENTER_CRITICAL();
-
     nya_curr_task->state = NYA_TASK_ASLEEP;
     nya_curr_task->delay = ticks;
     nya_queue_pop(&os_ctx.priorities[nya_curr_task->curr_prio]);
-    if (os_ctx.priorities[nya_curr_task->curr_prio].first == NYA_NULL)
-    {
-        NYA_PRIORITY_UNREADY(nya_curr_task->curr_prio);
-    };
-
+    NYA_PRIORITY_UNREADY(nya_curr_task->curr_prio);
     NYA_EXIT_CRITICAL();
-
-    nya_core_schedule();
+    nya_schedule();
 }
 
 void nya_init()
@@ -333,6 +338,5 @@ void nya_init()
         nya_port_startup();
     }
 
-    /* nya_port_startup(); should never return */
-    nya_core_panic();
+    nya_panic(NYA_STARTUP_EXITED);
 }

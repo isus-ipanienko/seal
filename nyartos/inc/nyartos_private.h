@@ -45,6 +45,7 @@ extern "C" {
 /* ------------------------------------------------------------------------------ */
 
 #define NYA_ARRAY_SIZE(_array)    (sizeof(_array) / sizeof(_array[0]))
+#define NYA_ASSERT(_condition, _id)    do { if (!(_condition)) nya_panic((_id)); } while(0);
 
 /* ------------------------------------------------------------------------------ */
 /* Types */
@@ -84,13 +85,22 @@ typedef enum
 } nya_event_type_t;
 
 /**
+ * @brief Queue type.
+ */
+typedef struct
+{
+    struct nya_tcb_t *first;    /**< First task in this queue. */
+    struct nya_tcb_t *last;     /**< Last task in this queue. */
+} nya_queue_t;
+
+/**
  * @brief Event type.
  */
 typedef struct
 {
     nya_event_type_t type;
     struct nya_tcb_t *holder;
-    struct nya_tcb_t *waiting_queue;
+    nya_queue_t queue;
     nya_size_t count;
 } nya_event_t;
 
@@ -124,15 +134,6 @@ typedef struct nya_tcb_t
 } nya_tcb_t;
 
 /**
- * @brief TODO
- */
-typedef struct
-{
-    nya_tcb_t *first; /**< First task in this queue. */
-    nya_tcb_t *last;  /**< Last task in this queue. */
-} nya_queue_t;
-
-/**
  * @brief System context type.
  */
 typedef struct
@@ -156,30 +157,25 @@ extern nya_tcb_t *volatile nya_next_task;
 extern nya_os_ctx_t os_ctx;
 
 /* ------------------------------------------------------------------------------ */
-/* Global Prototypes */
+/* Internal System Prototypes */
 /* ------------------------------------------------------------------------------ */
-
-/**
- * @brief This function is called whenever something really bad happens.
- */
-void nya_core_panic(void);
 
 /**
  * @brief This function is called when a task exits.
  */
-void nya_core_task_exit(void);
+void nya_task_exit(void);
 
 /**
  * @brief    Triggers a context switch.
  * @warning  Don't call it from an ISR, @c nya_exit_isr() handles context switching from ISRs.
  */
-void nya_core_schedule(void);
+void nya_schedule(void);
 
 /**
  * @brief   Increments the systick.
  * @note    This function contains a critical section.
  */
-void nya_core_systick(void);
+void nya_systick(void);
 
 /**
  * @brief Initializes a mutex.
@@ -212,6 +208,11 @@ void nya_queue_pop(nya_queue_t *queue);
  * @note    Call this from within a critical section.
  */
 void nya_queue_remove(nya_tcb_t *task, nya_queue_t *queue);
+
+/**
+ * @brief   Updates a task priority.
+ */
+void nya_update_priority(nya_tcb_t *task, nya_u8_t new_prio);
 
 /**
  * @brief   Initializes a task's stack.

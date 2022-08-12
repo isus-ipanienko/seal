@@ -57,8 +57,14 @@ typedef enum
 {
     NYA_OK = 0,
     NYA_ERROR,
+    NYA_NULL_PARAM,
     NYA_WRONG_EVENT,
     NYA_TIMEOUT,
+    NYA_EVENT_INITIALIZED,
+    NYA_TASK_EXITED,
+    NYA_STARTUP_EXITED,
+    NYA_ISR_OVERFLOW,
+    NYA_ISR_UNDERFLOW
 } nya_error_t;
 
 /* ------------------------------------------------------------------------------ */
@@ -126,6 +132,11 @@ nya_error_t nya_semaphore_take(nya_event_id_t id,
  */
 nya_error_t nya_semaphore_give(nya_event_id_t id);
 
+/**
+ * @brief This function is called when something really bad happens.
+ */
+void nya_panic(nya_error_t reason);
+
 /* ------------------------------------------------------------------------------ */
 /* Hooks */
 /* ------------------------------------------------------------------------------ */
@@ -133,7 +144,7 @@ nya_error_t nya_semaphore_give(nya_event_id_t id);
 /**
  * @brief This hook is called once upon entering a kernel panic.
  */
-void nya_panic_hook(void);
+void nya_panic_hook(nya_error_t reason);
 
 /**
  * @brief This hook is called once upon exiting a task.

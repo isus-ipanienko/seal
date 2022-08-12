@@ -62,7 +62,8 @@ void nya_port_context_switch(void);
 /* ------------------------------------------------------------------------------ */
 
 #define NYA_PRIORITY_READY(_priority)           do { os_ctx.ready_priorities |= (1 << (_priority)); } while (0)
-#define NYA_PRIORITY_UNREADY(_priority)         do { os_ctx.ready_priorities &= ~(1 << (_priority)); } while (0)
+#define NYA_PRIORITY_UNREADY(_priority)         do { if (os_ctx.priorities[_priority].first == NYA_NULL)            \
+                                                        os_ctx.ready_priorities &= ~(1 << (_priority)); } while (0)
 #define NYA_GET_HIGHEST_PRIORITY(_priorities)   (31UL - __builtin_clz(_priorities))
 
 /* ------------------------------------------------------------------------------ */

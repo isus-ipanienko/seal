@@ -43,7 +43,7 @@ nya_stack_t* nya_port_init_stack(nya_task_func_t entry_func,
     ptr = (nya_stack_t *)((nya_stack_t)(ptr) & 0xfffffff8U);              /* align to 8 bytes */
     *(--ptr) = (nya_stack_t)0x01000000UL;                                 /* xPSR : set thumb state */
     *(--ptr) = (nya_stack_t)entry_func & (nya_stack_t)0xfffffffe;         /* task entry */
-    *(--ptr) = (nya_stack_t)nya_core_task_exit & (nya_stack_t)0xfffffffe; /* LR */
+    *(--ptr) = (nya_stack_t)nya_task_exit & (nya_stack_t)0xfffffffe;      /* LR */
     *(--ptr) = (nya_stack_t)0x0000000CUL;                                 /* R12 */
     *(--ptr) = (nya_stack_t)0x00000003UL;                                 /* R3 */
     *(--ptr) = (nya_stack_t)0x00000002UL;                                 /* R2 */
@@ -127,7 +127,7 @@ void nya_port_systick_handler(void)
 {
     nya_enter_isr();
 
-    nya_core_systick();
+    nya_systick();
 
     nya_exit_isr();
 }

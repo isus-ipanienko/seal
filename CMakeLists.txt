@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 project(seal)
+set(EXECUTABLE seal)
 
 set(MCU_FAMILY STM32F1xx)
 set(MCU_MODEL STM32F103xB)
@@ -9,21 +10,19 @@ set(CPU_PARAMETERS
     -mthumb)
 
 set(PROJECT_INCLUDE_DIRECTORIES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/inc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/port/gcc/arm/cortex_m3
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples
-        )
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/port/gcc/arm/cortex_m3
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 
 set(CUBEMX_INCLUDE_DIRECTORIES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Include)
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/Core/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/Drivers/${MCU_FAMILY}_HAL_Driver/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/Drivers/${MCU_FAMILY}_HAL_Driver/Inc/Legacy
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/Drivers/CMSIS/Device/ST/${MCU_FAMILY}/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/Drivers/CMSIS/Include)
 
-set(STARTUP_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/startup_stm32f103xb.s)
+set(STARTUP_SCRIPT    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/startup_stm32f103xb.s)
 set(MCU_LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/STM32F103RBTx_FLASH.ld)
-set(EXECUTABLE ${CMAKE_PROJECT_NAME})
 
 enable_language(C ASM CXX)
 set(CMAKE_C_STANDARD 99)
@@ -34,18 +33,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
 file(GLOB_RECURSE STM32CUBEMX_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/*.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/Core/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubeMX/Drivers/*.c)
 
-file(PROJECT_SOURCES
-    src/core/core.c
-    src/core/events.c
-    src/core/system_tasks.c
-    src/port/gcc/arm/cortex_m3/port.c
-    src/port/gcc/arm/cortex_m3/port.s
-    examples/task_led.c
-    examples/task_print.c
-    )
+source_group(PROJECT_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}src/core/core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}src/core/events.c
+    ${CMAKE_CURRENT_SOURCE_DIR}src/core/system_tasks.c
+    ${CMAKE_CURRENT_SOURCE_DIR}src/port/gcc/arm/cortex_m3/port.c
+    ${CMAKE_CURRENT_SOURCE_DIR}src/port/gcc/arm/cortex_m3/port.s
+    ${CMAKE_CURRENT_SOURCE_DIR}examples/task_led.c
+    ${CMAKE_CURRENT_SOURCE_DIR}examples/task_print.c)
 
 add_executable(${EXECUTABLE}
     ${STM32CUBEMX_SOURCES}
